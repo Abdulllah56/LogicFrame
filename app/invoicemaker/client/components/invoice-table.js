@@ -389,8 +389,10 @@ export function InvoiceTable() {
                           className="flex items-center px-3 py-2 hover:bg-blue-50 text-gray-700 hover:text-blue-600 rounded-md transition-colors duration-150"
                         >
                           <Link href={`/invoicemaker/invoices/${invoice.id}`}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            View
+                            <div className="flex items-center">
+                              <Eye className="w-4 h-4 mr-2" />
+                              View
+                            </div>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="my-2 border-t border-gray-100" />
