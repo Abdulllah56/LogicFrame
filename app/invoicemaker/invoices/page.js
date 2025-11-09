@@ -28,9 +28,10 @@ export default function Invoices() {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-7xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Invoices</h1>
+    <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold tracking-tight mb-2">Invoice Management</h1>
+        <p className="text-base text-muted-foreground">Create, manage, and track all your invoices</p>
       </div>
       <InvoiceTable />
     </div>

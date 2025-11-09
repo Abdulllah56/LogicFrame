@@ -37,7 +37,8 @@ import {
   Download, 
   Trash2, 
   Search,
-  Plus
+  Plus,
+  FileText
 } from "lucide-react";
 import { InvoiceForm } from "./invoice-form";
 import { TemplatePicker } from "./template-picker";
@@ -245,115 +246,110 @@ export function InvoiceTable() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground">Invoice Management</h2>
-          <p className="text-muted-foreground">Create, manage, and track all your invoices</p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Button 
           onClick={() => setIsFormOpen(true)} 
-          className="mt-4 sm:mt-0 bg-[#03d0f4] hover:bg-[#02b8d8] text-white transition-all duration-300 ease-in-out border-none rounded-md"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-opacity font-medium"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4" />
           Create Invoice
         </Button>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 lg:space-x-4 p-4 bg-card rounded-lg border">
-        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search invoices..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full sm:w-64"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-32">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="overdue">Overdue</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full sm:w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date-desc">Latest First</SelectItem>
-              <SelectItem value="date-asc">Oldest First</SelectItem>
-              <SelectItem value="amount-desc">Highest Amount</SelectItem>
-              <SelectItem value="amount-asc">Lowest Amount</SelectItem>
-            </SelectContent>
-          </Select>
+      <div className="flex flex-col lg:flex-row lg:items-center gap-4 p-5 bg-card rounded-lg border border-border/50">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input
+            placeholder="Search invoices..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 w-full border-border/50 focus:border-border"
+          />
         </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full lg:w-36 border-border/50 focus:border-border">
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent className="border-border">
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="paid">Paid</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="overdue">Overdue</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-full lg:w-44 border-border/50 focus:border-border">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="border-border">
+            <SelectItem value="date-desc">Latest First</SelectItem>
+            <SelectItem value="date-asc">Oldest First</SelectItem>
+            <SelectItem value="amount-desc">Highest Amount</SelectItem>
+            <SelectItem value="amount-asc">Lowest Amount</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-lg border border-border/50 bg-card overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Invoice</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Project</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[50px]">Actions</TableHead>
+            <TableRow className="border-b border-border/50 hover:bg-transparent">
+              <TableHead className="font-semibold">Invoice</TableHead>
+              <TableHead className="font-semibold">Client</TableHead>
+              <TableHead className="font-semibold">Project</TableHead>
+              <TableHead className="font-semibold">Amount</TableHead>
+              <TableHead className="font-semibold">Due Date</TableHead>
+              <TableHead className="font-semibold">Status</TableHead>
+              <TableHead className="w-[50px] font-semibold">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredInvoices.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  No invoices found. Create your first invoice to get started!
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={7} className="text-center py-12">
+                  <div className="flex flex-col items-center gap-2">
+                    <FileText className="h-12 w-12 text-muted-foreground/50" />
+                    <p className="text-muted-foreground">No invoices found. Create your first invoice to get started!</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
               filteredInvoices.map((invoice) => (
-                <TableRow key={invoice.id}>
+                <TableRow key={invoice.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                   <TableCell>
                     <div>
-                      <div className="font-medium">{invoice.invoiceNumber}</div>
-                      <div className="text-sm text-muted-foreground">
-                        Created: {format(new Date(invoice.createdAt || Date.now()), "MMM dd, yyyy")}
+                      <div className="font-semibold text-foreground">{invoice.invoiceNumber}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {format(new Date(invoice.createdAt || Date.now()), "MMM dd, yyyy")}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{invoice.clientName}</div>
-                      <div className="text-sm text-muted-foreground">{invoice.clientEmail}</div>
+                      <div className="font-medium text-foreground">{invoice.clientName}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-[200px]">{invoice.clientEmail}</div>
                     </div>
                   </TableCell>
-                  <TableCell>{invoice.projectName}</TableCell>
-                  <TableCell className="font-medium">${invoice.total}</TableCell>
-                  <TableCell>{format(new Date(invoice.dueDate), "MMM dd, yyyy")}</TableCell>
+                  <TableCell className="text-foreground">{invoice.projectName}</TableCell>
+                  <TableCell className="font-semibold text-foreground tabular-nums">${invoice.total}</TableCell>
+                  <TableCell className="text-foreground">{format(new Date(invoice.dueDate), "MMM dd, yyyy")}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(invoice.status)}
-                      <Select
-                        value={invoice.status}
-                        onValueChange={(val) => updateStatusMutation.mutate({ id: invoice.id, status: val })}
-                      >
-                        <SelectTrigger className="w-[120px] h-8 text-sm font-medium transition-all hover:border-gray-400 focus:ring-2 focus:ring-blue-500/20">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent className="border border-gray-200 shadow-lg animate-in fade-in-50 zoom-in-95 duration-200">
-                          <SelectItem value="paid" className="text-green-600 hover:text-green-700 hover:bg-green-50 cursor-pointer">Paid</SelectItem>
-                          <SelectItem value="pending" className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 cursor-pointer">Pending</SelectItem>
-                          <SelectItem value="overdue" className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer">Overdue</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {getStatusBadge(invoice.status)}
+                    <Select
+                      value={invoice.status}
+                      onValueChange={(val) => updateStatusMutation.mutate({ id: invoice.id, status: val })}
+                    >
+                      <SelectTrigger className="w-[110px] h-8 text-xs font-medium border-border/50 hover:border-border transition-colors mt-1">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent className="border-border">
+                        <SelectItem value="paid" className="text-xs">Mark as Paid</SelectItem>
+                        <SelectItem value="pending" className="text-xs">Mark as Pending</SelectItem>
+                        <SelectItem value="overdue" className="text-xs">Mark as Overdue</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -361,46 +357,44 @@ export function InvoiceTable() {
                         <Button 
                           variant="ghost" 
                           size="icon"
-                          className="hover:bg-gray-100 transition-colors duration-200"
+                          className="h-8 w-8 hover:bg-muted transition-colors"
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent 
                         align="end"
-                        className="w-48 p-2 bg-white shadow-lg rounded-lg border border-gray-200 animate-in fade-in-50 zoom-in-95 duration-200"
+                        className="w-44 border-border"
                       >
                         <DropdownMenuItem 
                           onClick={() => handleEdit(invoice)}
-                          className="flex items-center px-3 py-2 hover:bg-blue-50 text-gray-700 hover:text-blue-600 rounded-md transition-colors duration-150"
+                          className="flex items-center gap-2 cursor-pointer"
                         >
-                          <Edit className="w-4 h-4 mr-2" />
+                          <Edit className="w-4 h-4" />
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => handleDownloadPDF(invoice)}
-                          className="flex items-center px-3 py-2 hover:bg-blue-50 text-gray-700 hover:text-blue-600 rounded-md transition-colors duration-150"
+                          className="flex items-center gap-2 cursor-pointer"
                         >
-                          <Download className="w-4 h-4 mr-2" />
+                          <Download className="w-4 h-4" />
                           Download PDF
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           asChild
-                          className="flex items-center px-3 py-2 hover:bg-blue-50 text-gray-700 hover:text-blue-600 rounded-md transition-colors duration-150"
+                          className="cursor-pointer"
                         >
-                          <Link href={`/invoicemaker/invoices/${invoice.id}`}>
-                            <div className="flex items-center">
-                              <Eye className="w-4 h-4 mr-2" />
-                              View
-                            </div>
+                          <Link href={`/invoicemaker/invoices/${invoice.id}`} className="flex items-center gap-2">
+                            <Eye className="w-4 h-4" />
+                            View Details
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator className="my-2 border-t border-gray-100" />
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           onClick={() => handleDelete(invoice.id)}
-                          className="flex items-center px-3 py-2 hover:bg-red-50 text-red-600 hover:text-red-700 rounded-md transition-colors duration-150"
+                          className="flex items-center gap-2 text-red-600 dark:text-red-500 focus:text-red-600 dark:focus:text-red-500 cursor-pointer"
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
+                          <Trash2 className="w-4 h-4" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>

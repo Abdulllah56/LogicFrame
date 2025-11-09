@@ -7,7 +7,7 @@ import { formatCurrency } from "../client/lib/invoice-utils";
 import { useInvoices } from "../client/hooks/useInvoices";
 import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
 import "../style.css"
-import { FileText, DollarSign, Clock, AlertTriangle } from "lucide-react";
+import { FileText, DollarSign, Clock, AlertTriangle, Plus } from "lucide-react";
 
 export default function Dashboard() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -62,26 +62,28 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
-      <div>
-        <h1 className="text-3xl font-bold">
+      <div className="space-y-1">
+        <h1 className="text-4xl font-bold tracking-tight">
           Welcome back, {user?.firstName || "User"}!
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           Here's an overview of your invoice activity and key metrics
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-border/50 hover:border-border transition-all duration-200 hover:shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Invoices</CardTitle>
+            <div className="h-9 w-9 rounded-lg bg-muted/50 flex items-center justify-center">
+              <FileText className="h-4 w-4 text-foreground/70" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-3xl font-bold tracking-tight">
               {statsLoading ? (
-                <div className="h-8 bg-muted animate-pulse rounded w-16" />
+                <div className="h-9 bg-muted animate-pulse rounded w-16" />
               ) : (
                 stats?.totalInvoices || 0
               )}
@@ -89,15 +91,17 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Paid Amount</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-border/50 hover:border-border transition-all duration-200 hover:shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Paid Amount</CardTitle>
+            <div className="h-9 w-9 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <DollarSign className="h-4 w-4 text-green-600 dark:text-green-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-3xl font-bold tracking-tight text-green-600 dark:text-green-500">
               {statsLoading ? (
-                <div className="h-8 bg-muted animate-pulse rounded w-20" />
+                <div className="h-9 bg-muted animate-pulse rounded w-24" />
               ) : (
                 formatCurrency(stats?.paidAmount || 0)
               )}
@@ -105,15 +109,17 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-border/50 hover:border-border transition-all duration-200 hover:shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
+            <div className="h-9 w-9 rounded-lg bg-orange-500/10 flex items-center justify-center">
+              <Clock className="h-4 w-4 text-orange-600 dark:text-orange-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-3xl font-bold tracking-tight text-orange-600 dark:text-orange-500">
               {statsLoading ? (
-                <div className="h-8 bg-muted animate-pulse rounded w-20" />
+                <div className="h-9 bg-muted animate-pulse rounded w-24" />
               ) : (
                 formatCurrency(stats?.pendingAmount || 0)
               )}
@@ -121,15 +127,17 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-border/50 hover:border-border transition-all duration-200 hover:shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Overdue</CardTitle>
+            <div className="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center">
+              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-3xl font-bold tracking-tight text-red-600 dark:text-red-500">
               {statsLoading ? (
-                <div className="h-8 bg-muted animate-pulse rounded w-20" />
+                <div className="h-9 bg-muted animate-pulse rounded w-24" />
               ) : (
                 formatCurrency(stats?.overdueAmount || 0)
               )}
@@ -139,15 +147,15 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Activity */}
-      <Card>
-        <CardHeader>
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle>Recent Invoices</CardTitle>
-            <a href="/invoicemaker/invoices" className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-sm font-medium transition-colors">
+            <CardTitle className="text-xl font-semibold">Recent Invoices</CardTitle>
+            <a href="/invoicemaker/invoices" className="text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors group">
               View All
               <svg 
                 viewBox="0 0 24 24" 
-                className="w-4 h-4 transition-transform transform group-hover:translate-x-1" 
+                className="w-4 h-4 transition-transform group-hover:translate-x-0.5" 
                 xmlns="http://www.w3.org/2000/svg"
                 fill="currentColor"
               >
@@ -156,7 +164,7 @@ export default function Dashboard() {
             </a>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-2">
           {invoicesLoading ? (
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
@@ -171,39 +179,21 @@ export default function Dashboard() {
               ))}
             </div>
           ) : recentInvoices.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <FileText className="mx-auto h-12 w-12 mb-4" />
-              <h3 className="font-medium mb-2">No invoices yet</h3>
-              <p className="text-sm">Create your first invoice to get started!</p>
-              <a 
-                href="/invoicemaker/invoices" 
-                className="create-invoice-btn inline-block mt-4"
-              > 
-              <button className="animated-button relative flex items-center gap-1 px-8 py-2.5 border-4 border-transparent text-base bg-transparent rounded-full font-semibold text-blue-500 cursor-pointer overflow-hidden hover:text-blue-950 group">
-      <svg 
-        viewBox="0 0 24 24" 
-        className="arr-2 absolute w-6 fill-blue-600 z-10 group-hover:fill-[#212121]" 
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"></path>
-      </svg>
-      
-      <span className="text relative z-10">Create Invoices</span>
-      
-      <span className="circle absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-blue-600 rounded-full opacity-0"></span>
-      
-      <svg 
-        viewBox="0 0 24 24" 
-        className="arr-1 absolute w-6 fill-blue-600 z-10 group-hover:fill-[#212121]" 
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"></path>
-      </svg>
-    </button>
+            <div className="text-center py-12 text-muted-foreground">
+              <div className="mx-auto h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                <FileText className="h-8 w-8 text-muted-foreground/50" />
+              </div>
+              <h3 className="font-semibold text-foreground mb-1">No invoices yet</h3>
+              <p className="text-sm mb-6">Create your first invoice to get started!</p>
+              <a href="/invoicemaker/invoices">
+                <button className="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-opacity font-medium text-sm">
+                  <Plus className="h-4 w-4" />
+                  Create Invoice
+                </button>
               </a>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-1">
               {recentInvoices.map((invoice) => {
                 const getStatusColor = (status) => {
                   switch (status) {
@@ -232,36 +222,38 @@ export default function Dashboard() {
                 };
 
                 return (
-                  <div key={invoice.id} className="flex items-center space-x-4 py-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  <a 
+                    key={invoice.id} 
+                    href={`/invoicemaker/invoices/${invoice.id}`}
+                    className="flex items-center gap-4 py-4 px-3 rounded-lg hover:bg-muted/50 transition-colors group"
+                  >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-semibold ${
                       invoice.status === "paid" 
-                        ? "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300"
+                        ? "bg-green-500/10 text-green-600 dark:text-green-500"
                         : invoice.status === "pending"
-                        ? "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300"
-                        : "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300"
+                        ? "bg-orange-500/10 text-orange-600 dark:text-orange-500"
+                        : "bg-red-500/10 text-red-600 dark:text-red-500"
                     }`}>
                       {getStatusIcon(invoice.status)}
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium">
-                        Invoice {invoice.invoiceNumber} - {invoice.to?.name || 'No Client Name'}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground group-hover:text-foreground truncate">
+                        Invoice {invoice.invoiceNumber}
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(invoice.createdAt).toLocaleDateString()}
+                      <p className="text-sm text-muted-foreground truncate">
+                        {invoice.to?.name || 'No Client Name'} • {new Date(invoice.createdAt).toLocaleDateString()}
                       </p>
                     </div>
-                    <span className={`font-medium ${getStatusColor(invoice.status)}`}>
+                    <span className={`font-semibold text-base tabular-nums ${getStatusColor(invoice.status)}`}>
                       {formatCurrency(invoice.items.reduce((sum, item) => sum + (item.quantity * item.rate), 0))}
                     </span>
-                  </div>
+                  </a>
                 );
               })}
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Subscription Status Removed */}
     </div>
   );
 }

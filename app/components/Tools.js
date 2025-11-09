@@ -34,6 +34,28 @@ const Tools = () => {
           <a href="/invoicemaker" className="inline-flex items-center gap-2 text-[#00D9FF] no-underline font-semibold hover:gap-3 transition-all after:content-['→']">Try Invoice Generator</a>
         </div>
 
+        {/* Screenshot Beautifier */}
+        <div className="relative bg-[rgba(255,255,255,0.03)] border border-[rgba(0,217,255,0.15)] rounded-2xl p-10 hover:-translate-y-2 hover:border-[#00D9FF] hover:bg-[rgba(0,217,255,0.05)] hover:shadow-[0_20px_60px_rgba(0,217,255,0.15)] transition-all overflow-hidden before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[3px] before:bg-[#00D9FF] before:transform before:scale-x-0 before:transition-transform hover:before:scale-x-100">
+          <div className="w-[70px] h-[70px] bg-gradient-to-br from-[rgba(0,217,255,0.15)] to-[rgba(0,217,255,0.05)] border-2 border-[rgba(0,217,255,0.3)] rounded-2xl flex items-center justify-center mb-6 relative overflow-hidden before:content-[''] before:absolute before:top-[-50%] before:left-[-50%] before:w-[200%] before:h-[200%] before:bg-gradient-to-br before:from-transparent before:via-[rgba(0,217,255,0.1)] before:to-transparent before:transform before:rotate-45 before:animate-shimmer">
+            <svg viewBox="0 0 24 24" className="w-[35px] h-[35px] stroke-[#00D9FF] fill-none stroke-2 stroke-linecap-round stroke-linejoin-round relative z-[1]">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <path d="M3 15l5-5c.928-.893 2.072-.893 3 0l3 3"></path>
+              <path d="M14 14l1-1c.928-.893 2.072-.893 3 0l3 3"></path>
+              <circle cx="7.5" cy="7.5" r="1.5"></circle>
+            </svg>
+          </div>
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[rgba(16,185,129,0.15)] text-[#10B981] border border-[rgba(16,185,129,0.3)] mb-4">● LIVE</span>
+          <h3 className="text-2xl mb-4">Screenshot Beautifier</h3>
+          <p className="text-[#94a3b8] leading-relaxed mb-6">Transform your screenshots into beautiful presentations. Add gradients, shadows, and frames with one click.</p>
+          <ul className="list-none mb-6">
+            <li className="py-2 text-[#94a3b8] text-sm flex items-center gap-2 before:content-['✓'] before:text-[#00D9FF] before:font-bold">Beautiful Frames</li>
+            <li className="py-2 text-[#94a3b8] text-sm flex items-center gap-2 before:content-['✓'] before:text-[#00D9FF] before:font-bold">Custom Gradients</li>
+            <li className="py-2 text-[#94a3b8] text-sm flex items-center gap-2 before:content-['✓'] before:text-[#00D9FF] before:font-bold">Shadow Effects</li>
+            <li className="py-2 text-[#94a3b8] text-sm flex items-center gap-2 before:content-['✓'] before:text-[#00D9FF] before:font-bold">Instant Download</li>
+          </ul>
+          <a href="/screenshotbeautifier" className="inline-flex items-center gap-2 text-[#00D9FF] no-underline font-semibold hover:gap-3 transition-all after:content-['→']">Try Screenshot Beautifier</a>
+        </div>
+
         {/* Expense Tracker */}
         <div className="relative bg-[rgba(255,255,255,0.03)] border border-[rgba(0,217,255,0.15)] rounded-2xl p-10 hover:-translate-y-2 hover:border-[#00D9FF] hover:bg-[rgba(0,217,255,0.05)] hover:shadow-[0_20px_60px_rgba(0,217,255,0.15)] transition-all overflow-hidden before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[3px] before:bg-[#00D9FF] before:transform before:scale-x-0 before:transition-transform hover:before:scale-x-100">
           <div className="w-[70px] h-[70px] bg-gradient-to-br from-[rgba(0,217,255,0.15)] to-[rgba(0,217,255,0.05)] border-2 border-[rgba(0,217,255,0.3)] rounded-2xl flex items-center justify-center mb-6 relative overflow-hidden before:content-[''] before:absolute before:top-[-50%] before:left-[-50%] before:w-[200%] before:h-[200%] before:bg-gradient-to-br before:from-transparent before:via-[rgba(0,217,255,0.1)] before:to-transparent before:transform before:rotate-45 before:animate-shimmer">
