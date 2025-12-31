@@ -1,80 +1,246 @@
-.animated-button {
-  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 0 2px #03d0f4;
-  text-decoration: none;
-  border-radius: 6px;
+:root {
+  /* Light Mode Variables */
+  --app-bg: #f8fafc;
+  --app-text: #0f1729;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --muted-text: #64748b;
+  --hover-bg: rgba(0, 217, 255, 0.1);
+  --no-invoice-bg: #f1f5f9;
+  --icon-bg: #ffffff;
+  --primary-color: #00D9FF;
+
+  /* Status Colors Light */
+  --status-paid-bg: rgba(34, 197, 94, 0.1);
+  --status-paid-text: #15803d;
+  --status-paid-border: rgba(34, 197, 94, 0.2);
+
+  --status-pending-bg: rgba(249, 115, 22, 0.1);
+  --status-pending-text: #c2410c;
+  --status-pending-border: rgba(249, 115, 22, 0.2);
+
+  --status-overdue-bg: rgba(239, 68, 68, 0.1);
+  --status-overdue-text: #b91c1c;
+  --status-overdue-border: rgba(239, 68, 68, 0.2);
+
+  --status-draft-bg: rgba(148, 163, 184, 0.1);
+  --status-draft-text: #475569;
+  --status-draft-border: rgba(148, 163, 184, 0.2);
+
+  --stat-icon-bg: rgba(0, 217, 255, 0.1);
+  --no-invoice-icon-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
 
-.animated-button svg {
-  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+.dark {
+  /* Dark Mode Variables */
+  --app-bg: #0f1729;
+  --app-text: #ffffff;
+  --card-bg: rgba(255, 255, 255, 0.03);
+  --card-border: rgba(0, 217, 255, 0.15);
+  --muted-text: #94a3b8;
+  --hover-bg: rgba(0, 217, 255, 0.05);
+  --no-invoice-bg: rgba(255, 255, 255, 0.02);
+  --icon-bg: rgba(255, 255, 255, 0.05);
+
+  /* Status Colors Dark */
+  --status-paid-text: #4ade80;
+  --status-pending-text: #fb923c;
+  --status-overdue-text: #f87171;
+  --status-draft-text: #94a3b8;
+
+  --stat-icon-bg: rgba(0, 217, 255, 0.1);
+  --no-invoice-icon-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
 }
 
-.animated-button .arr-1 {
-  right: 16px;
+body {
+  background-color: var(--app-bg);
+  color: var(--app-text);
 }
 
-.animated-button .arr-2 {
-  left: -25%;
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
 }
 
-.animated-button .circle {
-  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+.stat-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  backdrop-filter: blur(10px);
 }
 
-.animated-button .text {
-  transform: translateX(-12px);
-  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px -3px rgba(0, 217, 255, 0.1), 0 4px 6px -2px rgba(0, 217, 255, 0.05);
+  border-color: var(--primary-color);
 }
 
-.animated-button:hover {
-  box-shadow: 0 0 0 12px transparent;
-  border-radius: 24px;
-  text-decoration: none;
+.stat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
 }
 
-.animated-button:hover .arr-1 {
-  right: -25%;
+.stat-card-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--muted-text);
 }
 
-.animated-button:hover .arr-2 {
-  left: 16px;
+.stat-card-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--stat-icon-bg) !important;
 }
 
-.animated-button:hover .text {
-  transform: translateX(12px);
+.stat-card-value {
+  font-size: 1.875rem;
+  font-weight: 700;
 }
 
-.animated-button:hover .circle {
-  width: 220px;
-  height: 220px;
-  opacity: 1;
+.recent-invoices-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
 }
 
-.animated-button:active {
-  transform: scale(0.95);
-  box-shadow: 0 0 0 4px #adff2f;
+.recent-invoices-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--card-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.animated-button:hover {
-  background-color: #02b8d8;
-  transform: translateY(-1px);
+.recent-invoices-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--app-text);
 }
 
-.animated-button:active {
-  transform: translateY(0);
+.recent-invoices-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.recent-invoices-table th,
+.recent-invoices-table td {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--card-border);
+  color: var(--app-text);
+}
+
+.recent-invoices-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-text);
+  font-weight: 600;
+}
+
+.recent-invoices-table tbody tr:hover {
+  background-color: var(--hover-bg);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.status-paid {
+  background-color: var(--status-paid-bg);
+  color: var(--status-paid-text);
+  border-color: var(--status-paid-border);
+}
+
+.status-pending {
+  background-color: var(--status-pending-bg);
+  color: var(--status-pending-text);
+  border-color: var(--status-pending-border);
+}
+
+.status-overdue {
+  background-color: var(--status-overdue-bg);
+  color: var(--status-overdue-text);
+  border-color: var(--status-overdue-border);
+}
+
+.status-draft {
+  background-color: var(--status-draft-bg);
+  color: var(--status-draft-text);
+  border-color: var(--status-draft-border);
+}
+
+.no-invoices-container {
+  text-align: center;
+  padding: 4rem 1.5rem;
+  background-color: var(--no-invoice-bg);
+  border-radius: 0.75rem;
+}
+
+.no-invoices-icon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 9999px;
+  background-color: var(--icon-bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 1rem;
+  box-shadow: var(--no-invoice-icon-shadow);
+}
+
+.no-invoices-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--app-text);
+}
+
+.no-invoices-description {
+  color: var(--muted-text);
+  margin-bottom: 1.5rem;
+}
+
+.modal-bg {
+  background-color: #ffffff;
+}
+
+.dark .modal-bg {
+  background-color: #0f1729;
+  border: 1px solid rgba(0, 217, 255, 0.2);
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
 }
 
 .create-invoice-btn {
   text-decoration: none;
 }
 
-/* Add new common button class */
 .common-button {
-  background-color: #03d0f4;
-  color: white;
+  background-color: var(--primary-color);
+  color: #0f1729;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.875rem;
   transition: all 0.3s ease;
   border: none;
@@ -83,13 +249,88 @@
   align-items: center;
   justify-content: center;
   text-decoration: none;
+  box-shadow: 0 0 15px rgba(0, 217, 255, 0.3);
 }
 
 .common-button:hover {
-  background-color: #02b8d8;
+  background-color: #00B8D9;
   transform: translateY(-1px);
+  box-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+}
+
+.bg-gradient-radial {
+  background-image: radial-gradient(var(--tw-gradient-stops));
 }
 
 .common-button:active {
   transform: translateY(0);
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+.animate-float {
+  animation: float 20s infinite ease-in-out;
+}
+
+.animation-delay-7000 {
+  animation-delay: 7s;
+}
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 189 100% 50%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 40%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 189 100% 50%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 222 47% 11%;
+  --foreground: 0 0% 100%;
+  --card: 222 47% 11%;
+  --card-foreground: 0 0% 100%;
+  --popover: 222 47% 11%;
+  --popover-foreground: 0 0% 100%;
+  --primary: 189 100% 50%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 215 27.9% 16.9%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 215 27.9% 16.9%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 215 27.9% 16.9%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 189 100% 50%;
+  --input: 215 27.9% 16.9%;
+  --ring: 189 100% 50%;
 }

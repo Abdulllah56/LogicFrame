@@ -1,4 +1,4 @@
-"use client"; // Add this if using Next.js 13+ App Router
+"use client";
 
 import { useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -10,7 +10,7 @@ import { Textarea } from "./ui/textarea";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, User, Mail, Briefcase, Calendar, Hash, Building2, MapPin } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "../hooks/useToast";
 
@@ -71,6 +71,9 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
     resolver: zodResolver(invoiceFormSchema),
     defaultValues: {
       invoiceNumber: invoice?.invoiceNumber || "",
+      businessName: invoice?.businessName || "",
+      businessEmail: invoice?.businessEmail || "",
+      businessCity: invoice?.businessCity || "",
       clientName: invoice?.clientName || "",
       clientEmail: invoice?.clientEmail || "",
       projectName: invoice?.projectName || "",
@@ -98,6 +101,9 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
     if (invoice && mode === "edit") {
       const formData = {
         invoiceNumber: invoice.invoiceNumber || "",
+        businessName: invoice.businessName || "",
+        businessEmail: invoice.businessEmail || "",
+        businessCity: invoice.businessCity || "",
         clientName: invoice.clientName || "",
         clientEmail: invoice.clientEmail || "",
         projectName: invoice.projectName || "",
@@ -111,8 +117,26 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
         items: invoice.items || [{ description: "", quantity: "1", rate: "0", amount: "0" }],
       };
       form.reset(formData);
+    } else {
+      form.reset({
+        invoiceNumber: "",
+        businessName: "",
+        businessEmail: "",
+        businessCity: "",
+        clientName: "",
+        clientEmail: "",
+        projectName: "",
+        description: "",
+        dueDate: new Date(),
+        status: "pending",
+        subtotal: "0",
+        taxRate: "0",
+        taxAmount: "0",
+        total: "0",
+        items: [{ description: "", quantity: "1", rate: "0", amount: "0" }],
+      });
     }
-  }, [invoice, mode, form]);
+  }, [invoice, mode, form, open]);
 
   // Calculate totals automatically
   useEffect(() => {
@@ -144,8 +168,8 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
       const list = loadInvoices();
       const id = nextId();
       const now = new Date().toISOString();
-      const invoiceNumber = (data.invoiceNumber && data.invoiceNumber.trim()) 
-        ? data.invoiceNumber 
+      const invoiceNumber = (data.invoiceNumber && data.invoiceNumber.trim())
+        ? data.invoiceNumber
         : nextInvoiceNumber();
 
       const items = (data.items || []).map((item, idx) => ({
@@ -161,6 +185,9 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
         id,
         userId: 'local-user',
         invoiceNumber,
+        businessName: data.businessName,
+        businessEmail: data.businessEmail,
+        businessCity: data.businessCity,
         clientName: data.clientName,
         clientEmail: data.clientEmail,
         projectName: data.projectName,
@@ -187,7 +214,6 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
         description: "Invoice created successfully",
       });
       onOpenChange(false);
-      form.reset();
     },
     onError: (error) => {
       toast({
@@ -221,9 +247,12 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
 
       const updated = {
         ...existing,
-        invoiceNumber: (data.invoiceNumber && data.invoiceNumber.trim()) 
-          ? data.invoiceNumber 
+        invoiceNumber: (data.invoiceNumber && data.invoiceNumber.trim())
+          ? data.invoiceNumber
           : existing.invoiceNumber,
+        businessName: data.businessName,
+        businessEmail: data.businessEmail,
+        businessCity: data.businessCity,
         clientName: data.clientName,
         clientEmail: data.clientEmail,
         projectName: data.projectName,
@@ -260,7 +289,6 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
   });
 
   const onSubmit = (data) => {
-    // Ensure we have a valid Date object for dueDate
     const submissionData = {
       ...data,
       dueDate: data.dueDate instanceof Date ? data.dueDate : new Date(data.dueDate),
@@ -275,108 +303,68 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-950">
-        <DialogHeader className="border-b border-gray-200 dark:border-gray-800 pb-4">
-          <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto modal-bg">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">
             {mode === "edit" ? "Edit Invoice" : "Create New Invoice"}
           </DialogTitle>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Fill in the information below to {mode === "edit" ? "update" : "create"} an invoice
-          </p>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-          {/* Client Information */}
-          <Card className="border border-gray-200 dark:border-gray-800 shadow-sm rounded-lg overflow-hidden">
-            <CardHeader className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-800">
-              <CardTitle className="text-lg font-semibold">Client Information</CardTitle>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Enter your client's details</p>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="clientName" className="text-sm font-medium flex items-center">
-                  Client Name
-                  <span className="text-red-500 ml-1">*</span>
-                </Label>
-                <Input
-                  id="clientName"
-                  {...form.register("clientName")}
-                  placeholder="Enter client name"
-                  className={`border-gray-200 focus:ring-2 focus:ring-[#03d0f4] focus:ring-opacity-50 focus:border-transparent transition-all
-                    ${form.formState.errors.clientName ? 'border-red-500 focus:ring-red-500' : ''}`}
-                />
-                {form.formState.errors.clientName && (
-                  <p className="text-sm text-red-500 flex items-center">
-                    <span className="mr-1">⚠</span>
-                    {form.formState.errors.clientName.message}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="clientEmail" className="text-sm font-medium flex items-center">
-                  Client Email
-                  <span className="text-red-500 ml-1">*</span>
-                </Label>
-                <Input
-                  id="clientEmail"
-                  type="email"
-                  {...form.register("clientEmail")}
-                  placeholder="client@example.com"
-                  className={`border-gray-200 focus:ring-2 focus:ring-[#03d0f4] focus:ring-opacity-50 focus:border-transparent transition-all
-                    ${form.formState.errors.clientEmail ? 'border-red-500 focus:ring-red-500' : ''}`}
-                />
-                {form.formState.errors.clientEmail && (
-                  <p className="text-sm text-red-500 flex items-center">
-                    <span className="mr-1">⚠</span>
-                    {form.formState.errors.clientEmail.message}
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 py-4">
+          {/* Row 1: Business Info & Invoice Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="recent-invoices-card">
+              <CardHeader>
+                <CardTitle>Your Business Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
+                  <Input
+                    {...form.register("businessName")}
+                    placeholder="Business Name"
+                    className="pl-10"
+                  />
+                </div>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
+                  <Input
+                    type="email"
+                    {...form.register("businessEmail")}
+                    placeholder="Business Email"
+                    className="pl-10"
+                  />
+                </div>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
+                  <Input
+                    {...form.register("businessCity")}
+                    placeholder="City"
+                    className="pl-10"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Project Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="invoiceNumber">Invoice Number</Label>
+            <Card className="recent-invoices-card">
+              <CardHeader>
+                <CardTitle>Invoice Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
                   <Input
-                    id="invoiceNumber"
                     {...form.register("invoiceNumber")}
-                    placeholder="Auto-generated"
+                    placeholder="Invoice Number (auto-generated)"
                     readOnly={mode === "create"}
-                    className={mode === "create" ? "bg-muted" : ""}
+                    className="pl-10"
                   />
-                  {form.formState.errors.invoiceNumber && (
-                    <p className="text-sm text-destructive mt-1">
-                      {form.formState.errors.invoiceNumber.message}
-                    </p>
-                  )}
                 </div>
-                <div>
-                  <Label htmlFor="projectName">Project Name</Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
                   <Input
-                    id="projectName"
-                    {...form.register("projectName")}
-                    placeholder="Enter project name"
-                  />
-                  {form.formState.errors.projectName && (
-                    <p className="text-sm text-destructive mt-1">
-                      {form.formState.errors.projectName.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="dueDate">Due Date</Label>
-                  <Input
-                    id="dueDate"
                     type="date"
                     {...form.register("dueDate")}
-                    type="date"
                     value={
                       form.watch("dueDate")
                         ? new Date(form.watch("dueDate")).toISOString().split('T')[0]
@@ -388,28 +376,65 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
                         form.setValue("dueDate", date);
                       }
                     }}
+                    className="pl-10"
                   />
-                  {form.formState.errors.dueDate && (
-                    <p className="text-sm text-destructive mt-1">
-                      {form.formState.errors.dueDate.message}
-                    </p>
-                  )}
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="description">Project Description</Label>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Row 2: Client Info & Project Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="recent-invoices-card">
+              <CardHeader>
+                <CardTitle>Client Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
+                  <Input
+                    {...form.register("clientName")}
+                    placeholder="Client Name"
+                    className="pl-10"
+                  />
+                </div>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
+                  <Input
+                    type="email"
+                    {...form.register("clientEmail")}
+                    placeholder="Client Email"
+                    className="pl-10"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="recent-invoices-card">
+              <CardHeader>
+                <CardTitle>Project Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
+                  <Input
+                    {...form.register("projectName")}
+                    placeholder="Project Name"
+                    className="pl-10"
+                  />
+                </div>
                 <Textarea
-                  id="description"
                   {...form.register("description")}
-                  placeholder="Describe the project or services provided..."
+                  placeholder="Project Description..."
                   rows={3}
+                  className="resize-none"
                 />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Service Items */}
-          <Card>
+          <Card className="recent-invoices-card">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Service Items</CardTitle>
@@ -418,34 +443,30 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
                   variant="outline"
                   size="sm"
                   onClick={() => append({ description: "", quantity: "1", rate: "0", amount: "0" })}
-                  className="border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors"
                 >
-                  <Plus className="w-4 h-4 mr-2 text-[#03d0f4]" />
+                  <Plus className="w-4 h-4 mr-2" />
                   Add Item
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {fields.map((field, index) => (
-                <div key={field.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg">
+                <div key={field.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                   <div className="md:col-span-2">
-                    <Label>Description</Label>
                     <Input
                       {...form.register(`items.${index}.description`)}
                       placeholder="Service description"
                     />
                   </div>
                   <div>
-                    <Label>Quantity</Label>
                     <Input
                       type="number"
                       step="0.01"
                       {...form.register(`items.${index}.quantity`)}
-                      placeholder="Qty"
+                      placeholder="Quantity"
                     />
                   </div>
                   <div>
-                    <Label>Rate</Label>
                     <Input
                       type="number"
                       step="0.01"
@@ -453,22 +474,20 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
                       placeholder="Rate"
                     />
                   </div>
-                  <div className="flex items-end space-x-2">
-                    <div className="flex-1">
-                      <Label>Amount</Label>
-                      <Input
-                        {...form.register(`items.${index}.amount`)}
-                        readOnly
-                        className="bg-muted"
-                      />
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      {...form.register(`items.${index}.amount`)}
+                      readOnly
+                      className="bg-muted"
+                      placeholder="Amount"
+                    />
                     {fields.length > 1 && (
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
                         onClick={() => remove(index)}
-                        className="text-destructive hover:text-destructive"
+                        className="text-red-500 hover:bg-red-100"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -480,62 +499,54 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
           </Card>
 
           {/* Tax and Totals */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Tax & Totals</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="taxRate">Tax Rate (%)</Label>
-                <Input
-                  id="taxRate"
-                  type="number"
-                  step="0.01"
-                  {...form.register("taxRate")}
-                  placeholder="0.00"
-                />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <Card className="recent-invoices-card">
+              <CardHeader>
+                <CardTitle>Tax</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative">
+                  <Input
+                    id="taxRate"
+                    type="number"
+                    step="0.01"
+                    {...form.register("taxRate")}
+                    placeholder="Tax Rate (%)"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            <div className="recent-invoices-card p-6 rounded-lg space-y-4">
+              <div className="flex justify-between text-lg">
+                <span className="text-muted-foreground">Subtotal:</span>
+                <span className="font-semibold text-foreground">${form.watch("subtotal")}</span>
               </div>
-              <div className="bg-muted p-4 rounded-lg space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Subtotal:</span>
-                  <span>${form.watch("subtotal")}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Tax:</span>
-                  <span>${form.watch("taxAmount")}</span>
-                </div>
-                <div className="flex justify-between text-lg font-semibold border-t pt-2">
-                  <span>Total:</span>
-                  <span>${form.watch("total")}</span>
-                </div>
+              <div className="flex justify-between text-lg">
+                <span className="text-muted-foreground">Tax:</span>
+                <span className="font-semibold text-foreground">${form.watch("taxAmount")}</span>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex justify-between text-2xl font-bold border-t border-border pt-4 mt-4">
+                <span className="text-foreground">Total:</span>
+                <span className="text-primary">${form.watch("total")}</span>
+              </div>
+            </div>
+          </div>
 
           {/* Actions */}
-          <div className="flex justify-end space-x-4 pt-6 mt-6 border-t border-gray-200 dark:border-gray-800">
+          <div className="flex justify-end space-x-4 pt-6 mt-6 border-t">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="px-6 border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-6 bg-[#03d0f4] hover:bg-[#02b8d8] text-white transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+              className="common-button"
             >
-              {createMutation.isPending || updateMutation.isPending ? (
-                <div className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Saving...
-                </div>
-              ) : 'Save Invoice'}
+              {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save Invoice"}
             </Button>
           </div>
         </form>

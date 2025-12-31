@@ -1,0 +1,9 @@
+
+-- Drop the existing constraint
+ALTER TABLE public.email_settings 
+DROP CONSTRAINT IF EXISTS email_settings_provider_check;
+
+-- Add the corrected constraint allowing gmail, outlook, yahoo, and custom
+ALTER TABLE public.email_settings 
+ADD CONSTRAINT email_settings_provider_check 
+CHECK (provider IN ('smtp', 'resend', 'gmail', 'outlook', 'yahoo', 'custom'));

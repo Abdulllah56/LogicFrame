@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../client/component
 import { Button } from "../../client/components/ui/button";
 import { format } from "date-fns";
 import Link from "next/link";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Paperclip } from "lucide-react";
 import { Badge } from "../../client/components/ui/badge";
 import { TemplatePicker } from "../../client/components/template-picker";
 
@@ -114,11 +114,11 @@ export default function InvoiceView() {
   const getStatusBadge = (status) => {
     switch (status) {
       case "paid":
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Paid</Badge>;
+        return <Badge className="status-badge status-paid">Paid</Badge>;
       case "pending":
-        return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">Pending</Badge>;
+        return <Badge className="status-badge status-pending">Pending</Badge>;
       case "overdue":
-        return <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Overdue</Badge>;
+        return <Badge className="status-badge status-overdue">Overdue</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -137,7 +137,7 @@ export default function InvoiceView() {
       <div className="container mx-auto p-4">
         <div className="text-center py-8">
           <h2 className="text-2xl font-bold mb-4">Invoice Not Found</h2>
-          <Link href="/invoicemaker/invoices" className="text-blue-500 hover:text-blue-700">
+          <Link href="/invoicemaker/invoices">
             <Button variant="link">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Invoices
@@ -157,82 +157,99 @@ export default function InvoiceView() {
             Back to Invoices
           </Button>
         </Link>
-        <Button onClick={handleDownloadPDF} className="flex items-center">
-          <Download className="w-4 h-4 mr-2" />
-          Download PDF
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleDownloadPDF} className="common-button">
+            <Download className="w-4 h-4 mr-2" />
+            Download PDF
+          </Button>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader className="border-b">
+      <Card className="border-none shadow-lg">
+        <CardHeader className="bg-gray-50 rounded-t-lg p-6">
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-2xl">Invoice #{invoice.invoiceNumber}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Created: {format(new Date(invoice.createdAt), "MMMM d, yyyy")}
+              <div className="flex items-center gap-2 text-gray-500">
+                <Paperclip className="w-5 h-5" />
+                <h1 className="text-2xl font-bold text-gray-800">Invoice</h1>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                #{invoice.invoiceNumber}
               </p>
             </div>
             {getStatusBadge(invoice.status)}
           </div>
         </CardHeader>
-        <CardContent className="space-y-6 pt-6">
+        <CardContent className="p-8 space-y-8">
           {/* Client and Company Information */}
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-8">
             <div>
-              <h3 className="font-semibold mb-2">Bill To</h3>
+              <h3 className="font-semibold mb-3 text-gray-600">Billed To</h3>
               <div className="space-y-1">
-                <p className="font-medium">{invoice.clientName}</p>
-                <p className="text-sm text-muted-foreground">{invoice.clientEmail}</p>
-                <p className="text-sm text-muted-foreground">{invoice.clientAddress}</p>
+                <p className="font-medium text-lg text-gray-800">{invoice.clientName}</p>
+                <p className="text-sm text-gray-500">{invoice.clientEmail}</p>
+                <p className="text-sm text-gray-500">{invoice.clientAddress}</p>
               </div>
             </div>
-            <div>
-              <h3 className="font-semibold mb-2">Project Details</h3>
+            <div className="text-right">
+              <h3 className="font-semibold mb-3 text-gray-600">Project Details</h3>
               <div className="space-y-1">
-                <p className="font-medium">{invoice.projectName}</p>
-                <p className="text-sm text-muted-foreground">Due: {format(new Date(invoice.dueDate), "MMMM d, yyyy")}</p>
+                <p className="font-medium text-lg text-gray-800">{invoice.projectName}</p>
+                <p className="text-sm text-gray-500">
+                  <span className="font-semibold">Date:</span> {format(new Date(invoice.createdAt), "MMMM d, yyyy")}
+                </p>
+                <p className="text-sm text-gray-500">
+                  <span className="font-semibold">Due:</span> {format(new Date(invoice.dueDate), "MMMM d, yyyy")}
+                </p>
               </div>
             </div>
           </div>
 
           {/* Invoice Items */}
           <div>
-            <h3 className="font-semibold mb-4">Invoice Items</h3>
             <div className="border rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full">
+                <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Quantity</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Rate</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {invoice.items.map((item, index) => (
                     <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">{item.description}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">{item.quantity}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">${item.rate}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">${item.quantity * item.rate}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.description}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{item.quantity}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">${item.rate.toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold text-right">${(item.quantity * item.rate).toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="bg-gray-50">
-                  <tr>
-                    <td colSpan="3" className="px-6 py-3 text-right text-sm font-medium text-gray-500">Total</td>
-                    <td className="px-6 py-3 text-right text-sm font-bold">${invoice.total}</td>
-                  </tr>
-                </tfoot>
               </table>
+            </div>
+          </div>
+
+          {/* Total */}
+          <div className="flex justify-end">
+            <div className="w-full max-w-xs">
+              <div className="flex justify-between items-center py-2">
+                <span className="text-gray-600">Subtotal</span>
+                <span className="font-semibold text-gray-800">${invoice.total.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-t">
+                <span className="text-lg font-bold text-gray-800">Total</span>
+                <span className="text-lg font-bold text-gray-800">${invoice.total.toFixed(2)}</span>
+              </div>
             </div>
           </div>
 
           {/* Notes */}
           {invoice.notes && (
-            <div>
-              <h3 className="font-semibold mb-2">Notes</h3>
-              <p className="text-sm text-muted-foreground">{invoice.notes}</p>
+            <div className="border-t pt-6">
+              <h3 className="font-semibold mb-2 text-gray-600">Notes</h3>
+              <p className="text-sm text-gray-500">{invoice.notes}</p>
             </div>
           )}
         </CardContent>

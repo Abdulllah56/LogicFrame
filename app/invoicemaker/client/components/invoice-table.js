@@ -30,15 +30,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { 
-  MoreHorizontal, 
-  Eye, 
-  Edit, 
-  Download, 
-  Trash2, 
+import {
+  MoreHorizontal,
+  Eye,
+  Edit,
+  Download,
+  Trash2,
   Search,
   Plus,
-  FileText
+  FileText,
+  Filter,
+  ListOrdered
 } from "lucide-react";
 import { InvoiceForm } from "./invoice-form";
 import { TemplatePicker } from "./template-picker";
@@ -124,13 +126,13 @@ export function InvoiceTable() {
   // Filter and sort invoices
   const filteredInvoices = invoices
     .filter((invoice) => {
-      const matchesSearch = 
+      const matchesSearch =
         invoice.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         invoice.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
-      
+
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -151,11 +153,11 @@ export function InvoiceTable() {
   const getStatusBadge = (status) => {
     switch (status) {
       case "paid":
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Paid</Badge>;
+        return <Badge className="status-badge status-paid">Paid</Badge>;
       case "pending":
-        return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">Pending</Badge>;
+        return <Badge className="status-badge status-pending">Pending</Badge>;
       case "overdue":
-        return <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Overdue</Badge>;
+        return <Badge className="status-badge status-overdue">Overdue</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -191,16 +193,16 @@ export function InvoiceTable() {
     try {
       const { pdf } = await import('@react-pdf/renderer');
       const { StyledInvoicePDF } = await import('./styled-invoice-pdf');
-      
+
       // Generate PDF with template
       const blob = await pdf(
-        <StyledInvoicePDF 
+        <StyledInvoicePDF
           invoice={selectedInvoice}
           template={templateData.template}
           logo={templateData.logo}
         />
       ).toBlob();
-      
+
       // Download
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -208,7 +210,7 @@ export function InvoiceTable() {
       link.setAttribute('download', `invoice-${selectedInvoice.invoiceNumber}.pdf`);
       document.body.appendChild(link);
       link.click();
-      
+
       // Cleanup
       setTimeout(() => {
         document.body.removeChild(link);
@@ -247,153 +249,155 @@ export function InvoiceTable() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <Button 
-          onClick={() => setIsFormOpen(true)} 
-          className="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-opacity font-medium"
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Invoices</h1>
+          <p className="text-muted-foreground">Manage your invoices here.</p>
+        </div>
+        <Button
+          onClick={() => setIsFormOpen(true)}
+          className="common-button"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 mr-2" />
           Create Invoice
         </Button>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col lg:flex-row lg:items-center gap-4 p-5 bg-card rounded-lg border border-border/50">
+      <div className="flex flex-col lg:flex-row lg:items-center gap-4 p-4 recent-invoices-card">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            placeholder="Search invoices..."
+            placeholder="Search by client, project, or invoice number..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 w-full border-border/50 focus:border-border"
+            className="pl-10 w-full"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full lg:w-36 border-border/50 focus:border-border">
-            <SelectValue placeholder="All Status" />
-          </SelectTrigger>
-          <SelectContent className="border-border">
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="paid">Paid</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="overdue">Overdue</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-full lg:w-44 border-border/50 focus:border-border">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="border-border">
-            <SelectItem value="date-desc">Latest First</SelectItem>
-            <SelectItem value="date-asc">Oldest First</SelectItem>
-            <SelectItem value="amount-desc">Highest Amount</SelectItem>
-            <SelectItem value="amount-asc">Lowest Amount</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full lg:w-40">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="overdue">Overdue</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2">
+          <ListOrdered className="w-4 h-4 text-muted-foreground" />
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full lg:w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date-desc">Sort by: Latest First</SelectItem>
+              <SelectItem value="date-asc">Sort by: Oldest First</SelectItem>
+              <SelectItem value="amount-desc">Sort by: Highest Amount</SelectItem>
+              <SelectItem value="amount-asc">Sort by: Lowest Amount</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border border-border/50 bg-card overflow-hidden">
-        <Table>
+      <div className="recent-invoices-card">
+        <Table className="recent-invoices-table">
           <TableHeader>
-            <TableRow className="border-b border-border/50 hover:bg-transparent">
-              <TableHead className="font-semibold">Invoice</TableHead>
-              <TableHead className="font-semibold">Client</TableHead>
-              <TableHead className="font-semibold">Project</TableHead>
-              <TableHead className="font-semibold">Amount</TableHead>
-              <TableHead className="font-semibold">Due Date</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
-              <TableHead className="w-[50px] font-semibold">Actions</TableHead>
+            <TableRow>
+              <TableHead>Invoice</TableHead>
+              <TableHead>Client</TableHead>
+              <TableHead>Project</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Due Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-[50px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredInvoices.length === 0 ? (
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={7} className="text-center py-12">
-                  <div className="flex flex-col items-center gap-2">
-                    <FileText className="h-12 w-12 text-muted-foreground/50" />
-                    <p className="text-muted-foreground">No invoices found. Create your first invoice to get started!</p>
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-16">
+                  <div className="flex flex-col items-center gap-4">
+                    <FileText className="h-16 w-16 text-muted-foreground/30" />
+                    <h3 className="text-xl font-semibold text-foreground">No invoices yet</h3>
+                    <p className="text-muted-foreground">Create your first invoice to get started.</p>
+                    <Button onClick={() => setIsFormOpen(true)} className="common-button mt-4">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Invoice
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
               filteredInvoices.map((invoice) => (
-                <TableRow key={invoice.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                <TableRow key={invoice.id} className="hover:bg-muted/50">
                   <TableCell>
-                    <div>
-                      <div className="font-semibold text-foreground">{invoice.invoiceNumber}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {format(new Date(invoice.createdAt || Date.now()), "MMM dd, yyyy")}
-                      </div>
+                    <div className="font-semibold">{invoice.invoiceNumber}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {format(new Date(invoice.createdAt || Date.now()), "MMM dd, yyyy")}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div>
-                      <div className="font-medium text-foreground">{invoice.clientName}</div>
-                      <div className="text-xs text-muted-foreground truncate max-w-[200px]">{invoice.clientEmail}</div>
-                    </div>
+                    <div className="font-medium">{invoice.clientName}</div>
+                    <div className="text-xs text-muted-foreground truncate max-w-[200px]">{invoice.clientEmail}</div>
                   </TableCell>
-                  <TableCell className="text-foreground">{invoice.projectName}</TableCell>
-                  <TableCell className="font-semibold text-foreground tabular-nums">${invoice.total}</TableCell>
-                  <TableCell className="text-foreground">{format(new Date(invoice.dueDate), "MMM dd, yyyy")}</TableCell>
+                  <TableCell>{invoice.projectName}</TableCell>
+                  <TableCell className="font-semibold">${invoice.total}</TableCell>
+                  <TableCell>{format(new Date(invoice.dueDate), "MMM dd, yyyy")}</TableCell>
                   <TableCell>
                     {getStatusBadge(invoice.status)}
-                    <Select
-                      value={invoice.status}
-                      onValueChange={(val) => updateStatusMutation.mutate({ id: invoice.id, status: val })}
-                    >
-                      <SelectTrigger className="w-[110px] h-8 text-xs font-medium border-border/50 hover:border-border transition-colors mt-1">
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent className="border-border">
-                        <SelectItem value="paid" className="text-xs">Mark as Paid</SelectItem>
-                        <SelectItem value="pending" className="text-xs">Mark as Pending</SelectItem>
-                        <SelectItem value="overdue" className="text-xs">Mark as Overdue</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
-                          className="h-8 w-8 hover:bg-muted transition-colors"
+                          className="h-8 w-8"
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent 
-                        align="end"
-                        className="w-44 border-border"
-                      >
-                        <DropdownMenuItem 
-                          onClick={() => handleEdit(invoice)}
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          <Edit className="w-4 h-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleDownloadPDF(invoice)}
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          <Download className="w-4 h-4" />
-                          Download PDF
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          asChild
-                          className="cursor-pointer"
-                        >
-                          <Link href={`/invoicemaker/invoices/${invoice.id}`} className="flex items-center gap-2">
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/invoicemaker/invoices/${invoice.id}`} className="flex items-center gap-2 cursor-pointer">
                             <Eye className="w-4 h-4" />
                             View Details
                           </Link>
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(invoice)} className="flex items-center gap-2 cursor-pointer">
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownloadPDF(invoice)} className="flex items-center gap-2 cursor-pointer">
+                          <Download className="w-4 h-4" />
+                          Download PDF
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => handleDelete(invoice.id)}
-                          className="flex items-center gap-2 text-red-600 dark:text-red-500 focus:text-red-600 dark:focus:text-red-500 cursor-pointer"
-                        >
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="w-full justify-start px-2 py-1.5 text-sm">
+                              Change Status
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent side="right" className="w-40">
+                            <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: invoice.id, status: 'paid' })}>
+                              Paid
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: invoice.id, status: 'pending' })}>
+                              Pending
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: invoice.id, status: 'overdue' })}>
+                              Overdue
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleDelete(invoice.id)} className="flex items-center gap-2 text-red-500 focus:text-red-500 cursor-pointer">
                           <Trash2 className="w-4 h-4" />
                           Delete
                         </DropdownMenuItem>

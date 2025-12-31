@@ -4,9 +4,11 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Card } from './ui/card';
-import { useToast } from '../hooks/use-toast'
+import { useToast } from '../hooks/use-toast';
+import { TemplatePicker } from './template-picker';
+
 export function InvoiceGenerator({ initialData, onSave }) {
-  const [template, setTemplate] = useState(initialData?.template || 'modern');
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [logo, setLogo] = useState(initialData?.logo || '');
   const [invoiceData, setInvoiceData] = useState(initialData?.invoiceData || {
     invoiceNumber: 'INV-001',
@@ -77,66 +79,41 @@ export function InvoiceGenerator({ initialData, onSave }) {
     return calculateSubtotal() + calculateTax();
   };
 
-  const handleSave = () => {
-    onSave({
-      template,
-      logo,
-      invoiceData
-    });
+  const handleDownload = () => {
+    setIsPickerOpen(true);
+  };
+
+  const handleGeneratePdf = async ({ template, logo }) => {
+    // This is where the PDF generation will be triggered.
+    // For now, we'll just log the data.
+    console.log('Generating PDF with:', { template, logo, invoiceData });
     toast({
-      title: "Success",
-      description: "Invoice template saved successfully",
+      title: "Generating PDF",
+      description: `Using ${template} template.`,
     });
   };
 
-  // Template Styles
-  const templateStyles = {
-    modern: {
+  const currentStyle = {
       container: 'bg-white',
       header: 'bg-gradient-to-r from-blue-600 to-blue-800 text-white p-8',
       accent: 'text-blue-600',
       button: 'bg-blue-600 hover:bg-blue-700'
-    },
-    classic: {
-      container: 'bg-white border-4 border-gray-800',
-      header: 'bg-gray-800 text-white p-8',
-      accent: 'text-gray-800',
-      button: 'bg-gray-800 hover:bg-gray-900'
-    },
-    minimal: {
-      container: 'bg-white',
-      header: 'border-b-2 border-gray-200 p-8',
-      accent: 'text-gray-900',
-      button: 'bg-gray-900 hover:bg-gray-800'
-    }
-  };
-
-  const currentStyle = templateStyles[template];
+    };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
+      {isPickerOpen && (
+        <TemplatePicker
+          invoice={{...invoiceData, subtotal: calculateSubtotal(), taxAmount: calculateTax(), total: calculateTotal()}}
+          onGenerate={handleGeneratePdf}
+          onClose={() => setIsPickerOpen(false)}
+        />
+      )}
       {/* Controls */}
       <Card className="max-w-4xl mx-auto mb-6 p-4">
         <div className="flex flex-wrap gap-4 items-center justify-between">
           <div className="flex gap-2">
-            <Button
-              variant={template === 'modern' ? 'default' : 'outline'}
-              onClick={() => setTemplate('modern')}
-            >
-              Modern
-            </Button>
-            <Button
-              variant={template === 'classic' ? 'default' : 'outline'}
-              onClick={() => setTemplate('classic')}
-            >
-              Classic
-            </Button>
-            <Button
-              variant={template === 'minimal' ? 'default' : 'outline'}
-              onClick={() => setTemplate('minimal')}
-            >
-              Minimal
-            </Button>
+             {/* The template buttons are removed */}
           </div>
           
           <div className="flex gap-2">
@@ -154,9 +131,9 @@ export function InvoiceGenerator({ initialData, onSave }) {
               onChange={handleLogoUpload}
               className="hidden"
             />
-            <Button onClick={handleSave}>
+            <Button onClick={handleDownload}>
               <Download className="w-4 h-4 mr-2" />
-              Save Template
+              Download PDF
             </Button>
           </div>
         </div>

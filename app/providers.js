@@ -10,7 +10,7 @@ export function Providers({ children }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="dark" storageKey="logicframe-theme">
+      <ThemeProvider defaultTheme="light" storageKey="logicframe-theme">
         {children}
         <Toaster />
       </ThemeProvider>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Primary SEO Metadata -->
+    <title>LogicFrame - The Elegant OS for Professional Freelancers</title>
+    <meta name="title" content="LogicFrame - Professional Freelance OS">
+    <meta name="description" content="A suite of elegant tools for modern freelancers. Automate invoicing, track expenses, and beautify your brand with the LogicFrame toolkit. Built for professionals.">
+    <meta name="keywords" content="freelance tools, invoice generator, expense tracker, screenshot beautifier, business management for freelancers, logicframe">
+    <meta name="author" content="LogicFrame">
+    <link rel="canonical" href="https://logicframe.com/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://logicframe.com/">
+    <meta property="og:title" content="LogicFrame - Professional Freelance OS">
+    <meta property="og:description" content="Manage your business with elegance. A complete ecosystem of tools designed for the modern independent professional.">
+    <meta property="og:image" content="https://logicframe.com/og-image.jpg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://logicframe.com/">
+    <meta property="twitter:title" content="LogicFrame - Professional Freelance OS">
+    <meta property="twitter:description" content="Ditch the manual chaos. Switch to LogicFrame for automated invoicing and smart business tracking.">
+    <meta property="twitter:image" content="https://logicframe.com/twitter-image.jpg">
+
+    <!-- Performance: Preconnects -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Structured Data (JSON-LD) for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "LogicFrame",
+      "operatingSystem": "Web",
+      "applicationCategory": "BusinessApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Professional suite of tools for freelancers including invoice generation and expense tracking.",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "1200"
+      }
+    }
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-main: #030712;
+            --text-main: #f8fafc;
+        }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: var(--bg-main); 
+            color: var(--text-main); 
+            overflow-x: hidden; 
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .noise::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            opacity: 0.04;
+            z-index: 9999;
+            pointer-events: none;
+            background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.01);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-100%); }
+        }
+        @keyframes marquee2 {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(0%); }
+        }
+        .animate-marquee { animation: marquee 40s linear infinite; }
+        .animate-marquee2 { animation: marquee2 40s linear infinite; }
+
+        ::selection { background: rgba(0, 217, 255, 0.3); color: #fff; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-main); }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://aistudiocdn.com/react@^19.2.1",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+        "react/": "https://aistudiocdn.com/react@^19.2.1/",
+        "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
+        "ogl": "https://aistudiocdn.com/ogl@^1.0.11"
+      }
+    }
+    </script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="noise">
+    <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

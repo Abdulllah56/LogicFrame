@@ -20,6 +20,9 @@ const invoiceItemSchema = z.object({
 // Main invoice form schema
 export const invoiceFormSchema = z.object({
   invoiceNumber: z.string().optional(),
+  businessName: z.string().min(1, "Business name is required"),
+  businessEmail: z.string().email("Invalid email format"),
+  businessCity: z.string().min(1, "City is required"),
   clientName: z.string().min(1, "Client name is required"),
   clientEmail: z.string().email("Invalid email format"),
   projectName: z.string().min(1, "Project name is required"),

@@ -6,12 +6,41 @@ import {
   Magnet, Layers, Eye, EyeOff, Trash2, Lock, Unlock, Settings, 
   Copy, ChevronUp, ChevronDown, X, ChevronsLeft, Undo, Redo,
   Plus, Minus, Check, Brush, Eraser, PenTool, Square, Circle,
-  Sliders, Info, Sun, Moon, Wand2, Scan, Target, Crosshair
+  Sliders, Info, Sun, Moon, Wand2, Scan, Target, Crosshair, Zap
 } from 'lucide-react';
 
+import { useImageProcessor } from './components/ImageProcessor';
+import { useToast } from '../invoicemaker/client/hooks/useToast';
+import TextDetectionPanel from './components/TextDetectionPanel';
+import ColorPalettePanel from './components/ColorPalettePanel';
+import ObjectDetectionPanel from './components/ObjectDetectionPanel';
+
 export default function AIImageEditor() {
+  const {
+    dilate,
+    erode,
+    gaussianBlur,
+    calculateSelectionBounds,
+    improvedFloodFill,
+    computeEdgeMap
+  } = useImageProcessor();
+  const { toast } = useToast();
+
+  // Load ColorThief lazily only when this editor is mounted (reduces global script weight)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!window.ColorThief) {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/colorthief@2.4.0/dist/color-thief.umd.js';
+      s.defer = true;
+      s.onload = () => console.log('ColorThief loaded');
+      document.body.appendChild(s);
+    }
+  }, []);
+
   // --- STATE ---
   const [uploadedImage, setUploadedImage] = useState(null);
+  const [uploadedImageSrc, setUploadedImageSrc] = useState(null);
   const [layers, setLayers] = useState([]);
   const [selectedLayerId, setSelectedLayerId] = useState(null);
   const [activeTool, setActiveTool] = useState('move');
@@ -46,10 +75,15 @@ export default function AIImageEditor() {
   
   // Detected Objects State
   const [detectedObjects, setDetectedObjects] = useState([]);
+  const [detectedText, setDetectedText] = useState([]);
   const [showObjectHighlights, setShowObjectHighlights] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isAnalyzingText, setIsAnalyzingText] = useState(false);
   const [hoveredObjectId, setHoveredObjectId] = useState(null);
   const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [colorPalette, setColorPalette] = useState([]);
+  const [vectorizedSvg, setVectorizedSvg] = useState(null);
+  const [isVectorizing, setIsVectorizing] = useState(false);
   
   const [showSelectionPreview, setShowSelectionPreview] = useState(true);
   const [isDrawingPath, setIsDrawingPath] = useState(false);
@@ -95,24 +129,6 @@ export default function AIImageEditor() {
   
   // --- HELPER FUNCTIONS (Define these FIRST) ---
   
-  const calculateSelectionBounds = useCallback((mask, width, height) => {
-    let minX = width, minY = height, maxX = 0, maxY = 0;
-    let hasSelection = false;
-    
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        if (mask[y * width + x] > 128) {
-          hasSelection = true;
-          minX = Math.min(minX, x);
-          minY = Math.min(minY, y);
-          maxX = Math.max(maxX, x);
-          maxY = Math.max(maxY, y);
-        }
-      }
-    }
-    
-    return hasSelection ? { minX, minY, maxX, maxY } : null;
-  }, []);
 
   const saveSelectionToHistory = useCallback((mask) => {
     const newHistory = selectionHistory.slice(0, selectionHistoryIndex + 1);
@@ -128,480 +144,49 @@ export default function AIImageEditor() {
     setHistoryIndex(newHistory.length - 1);
   }, [history, historyIndex]);
 
-  // --- COLOR DISTANCE ---
-  const colorDistance = useCallback((r1, g1, b1, a1, r2, g2, b2, a2) => {
-    const dr = r1 - r2;
-    const dg = g1 - g2;
-    const db = b1 - b2;
-    const da = (a1 - a2) / 255;
-    
-    return Math.sqrt(dr * dr + dg * dg + db * db + da * da * 50);
-  }, []);
-
-  // --- EDGE DETECTION ---
-  const computeEdgeMap = useCallback((imageData) => {
-    const { width, height, data } = imageData;
-    const edgeMap = new Float32Array(width * height);
-    const gradientX = new Float32Array(width * height);
-    const gradientY = new Float32Array(width * height);
-    
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
-        let gx = 0, gy = 0;
-        
-        for (let c = 0; c < 3; c++) {
-          const idx = (y * width + x) * 4 + c;
-          
-          gx += -data[idx - 4 - width * 4] + data[idx + 4 - width * 4] +
-                -2 * data[idx - 4] + 2 * data[idx + 4] +
-                -data[idx - 4 + width * 4] + data[idx + 4 + width * 4];
-          
-          gy += -data[idx - 4 - width * 4] - 2 * data[idx - width * 4] - data[idx + 4 - width * 4] +
-                data[idx - 4 + width * 4] + 2 * data[idx + width * 4] + data[idx + 4 + width * 4];
-        }
-        
-        const magnitude = Math.sqrt(gx * gx + gy * gy) / 3;
-        const idx = y * width + x;
-        edgeMap[idx] = magnitude;
-        gradientX[idx] = gx;
-        gradientY[idx] = gy;
-      }
-    }
-    
-    return { edgeMap, gradientX, gradientY };
-  }, []);
-
-  // --- MORPHOLOGICAL OPERATIONS ---
-  const dilate = useCallback((mask, width, height, radius = 1) => {
-    const result = new Uint8ClampedArray(mask.length);
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        let maxVal = 0;
-        for (let dy = -radius; dy <= radius; dy++) {
-          for (let dx = -radius; dx <= radius; dx++) {
-            const nx = x + dx;
-            const ny = y + dy;
-            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-              maxVal = Math.max(maxVal, mask[ny * width + nx]);
-            }
-          }
-        }
-        result[y * width + x] = maxVal;
-      }
-    }
-    return result;
-  }, []);
-
-  const erode = useCallback((mask, width, height, radius = 1) => {
-    const result = new Uint8ClampedArray(mask.length);
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        let minVal = 255;
-        for (let dy = -radius; dy <= radius; dy++) {
-          for (let dx = -radius; dx <= radius; dx++) {
-            const nx = x + dx;
-            const ny = y + dy;
-            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-              minVal = Math.min(minVal, mask[ny * width + nx]);
-            }
-          }
-        }
-        result[y * width + x] = minVal;
-      }
-    }
-    return result;
-  }, []);
-
-  // --- GAUSSIAN BLUR ---
-  const gaussianBlur = useCallback((mask, width, height, radius) => {
-    if (radius === 0) return mask;
-    
-    const result = new Uint8ClampedArray(mask.length);
-    const kernel = [];
-    const sigma = radius / 2;
-    let kernelSum = 0;
-    
-    for (let i = -radius; i <= radius; i++) {
-      const val = Math.exp(-(i * i) / (2 * sigma * sigma));
-      kernel.push(val);
-      kernelSum += val;
-    }
-    
-    for (let i = 0; i < kernel.length; i++) {
-      kernel[i] /= kernelSum;
-    }
-    
-    const temp = new Float32Array(mask.length);
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        let sum = 0;
-        for (let i = -radius; i <= radius; i++) {
-          const nx = Math.max(0, Math.min(width - 1, x + i));
-          sum += mask[y * width + nx] * kernel[i + radius];
-        }
-        temp[y * width + x] = sum;
-      }
-    }
-    
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        let sum = 0;
-        for (let i = -radius; i <= radius; i++) {
-          const ny = Math.max(0, Math.min(height - 1, y + i));
-          sum += temp[ny * width + x] * kernel[i + radius];
-        }
-        result[y * width + x] = Math.round(sum);
-      }
-    }
-    
-    return result;
-  }, []);
-
-  // --- IMPROVED FLOOD FILL ---
-  const improvedFloodFill = useCallback((startX, startY, imageData, edgeData, settings) => {
-    const { width, height, data } = imageData;
-    const { edgeMap } = edgeData;
-    
+  // Decodes a run-length encoded (RLE) mask string into a Uint8ClampedArray
+  const decodeRle = useCallback((rle) => {
+    const { size, counts } = rle;
+    const [height, width] = size;
     const mask = new Uint8ClampedArray(width * height);
-    const visited = new Uint8Array(width * height);
-    const distances = new Float32Array(width * height);
-    distances.fill(Infinity);
-    
-    const startIdx = (startY * width + startX) * 4;
-    const seedR = data[startIdx];
-    const seedG = data[startIdx + 1];
-    const seedB = data[startIdx + 2];
-    const seedA = data[startIdx + 3];
-    
-    const queue = [[startX, startY, 0]];
-    visited[startY * width + startX] = 1;
-    distances[startY * width + startX] = 0;
-    
-    const tolerance = settings.tolerance;
-    const edgeThreshold = (settings.edgeDetection / 100) * 255;
-    
-    let pixels = [];
-    
-    while (queue.length > 0) {
-      queue.sort((a, b) => a[2] - b[2]);
-      const [x, y, dist] = queue.shift();
-      const idx = y * width + x;
-      const pixelIdx = idx * 4;
-      
-      const r = data[pixelIdx];
-      const g = data[pixelIdx + 1];
-      const b = data[pixelIdx + 2];
-      const a = data[pixelIdx + 3];
-      
-      const colorDist = colorDistance(r, g, b, a, seedR, seedG, seedB, seedA);
-      const edge = edgeMap[idx] || 0;
-      
-      const adaptiveTolerance = tolerance * (1 + dist * 0.01);
-      
-      if (colorDist <= adaptiveTolerance && edge < edgeThreshold) {
-        mask[idx] = 255;
-        pixels.push([x, y]);
-        
-        const neighbors = [
-          [x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1],
-          [x + 1, y + 1], [x - 1, y - 1], [x + 1, y - 1], [x - 1, y + 1]
-        ];
-        
-        for (const [nx, ny] of neighbors) {
-          if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-            const nIdx = ny * width + nx;
-            if (!visited[nIdx]) {
-              visited[nIdx] = 1;
-              const newDist = dist + 1;
-              if (newDist < distances[nIdx]) {
-                distances[nIdx] = newDist;
-                queue.push([nx, ny, newDist]);
-              }
-            }
-          }
-        }
+    let p = 0;
+    let i = 0;
+    while (i < counts.length) {
+      const is_mask = i % 2 === 0;
+      const count = counts[i];
+      for (let j = 0; j < count; j++) {
+        mask[p] = is_mask ? 1 : 0;
+        p++;
       }
+      i++;
     }
-    
-    return { mask, pixels };
-  }, [colorDistance]);
+    return mask;
+  }, []);
 
-  // Continue to Part 2...
-
-    // ... continuing from Part 1
-
-  // Replace the mergeRegionGroup function with this fixed version:
-const mergeRegionGroup = (group) => {
-  const allPixels = [];
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  
-  for (const region of group) {
-    // Fix: Use concat or loop instead of spread operator for large arrays
-    if (region.pixels.length > 1000) {
-      // For large arrays, use a loop to avoid stack overflow
-      for (let i = 0; i < region.pixels.length; i++) {
-        allPixels.push(region.pixels[i]);
-      }
-    } else {
-      // For smaller arrays, spread is fine
-      allPixels.push(...region.pixels);
-    }
-    
-    minX = Math.min(minX, region.bounds.minX);
-    minY = Math.min(minY, region.bounds.minY);
-    maxX = Math.max(maxX, region.bounds.maxX);
-    maxY = Math.max(maxY, region.bounds.maxY);
-  }
-  
-  return {
-    pixels: allPixels,
-    bounds: { minX, minY, maxX, maxY },
-    center: { x: (minX + maxX) / 2, y: (minY + maxY) / 2 },
-    id: group[0].id
-  };
-};
-
-// Replace the entire detectMeaningfulObjects function with this improved version:
-const detectMeaningfulObjects = useCallback((imageData) => {
-  const { width, height, data } = imageData;
-  
-  console.log('Starting object detection...', { width, height });
-  
-  // First, create edge map for better segmentation
-  const edges = new Float32Array(width * height);
-  
-  // Simple edge detection
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const idx = y * width + x;
-      const pidx = idx * 4;
-      
-      let edgeSum = 0;
-      for (let c = 0; c < 3; c++) {
-        const center = data[pidx + c];
-        // Check horizontal and vertical neighbors
-        const left = data[pidx + c - 4];
-        const right = data[pidx + c + 4];
-        const top = data[pidx + c - width * 4];
-        const bottom = data[pidx + c + width * 4];
-        
-        edgeSum += Math.abs(center - left) + Math.abs(center - right) + 
-                   Math.abs(center - top) + Math.abs(center - bottom);
-      }
-      edges[idx] = edgeSum / 12; // Normalize
-    }
-  }
-  
-  // Connected component labeling
-  const labels = new Int32Array(width * height).fill(-1);
-  const visited = new Uint8Array(width * height);
-  let currentLabel = 0;
-  const regions = [];
-  
-  // Function to check if pixels are similar
-  const arePixelsSimilar = (idx1, idx2) => {
-    const p1 = idx1 * 4;
-    const p2 = idx2 * 4;
-    
-    const dr = Math.abs(data[p1] - data[p2]);
-    const dg = Math.abs(data[p1 + 1] - data[p2 + 1]);
-    const db = Math.abs(data[p1 + 2] - data[p2 + 2]);
-    
-    // Check color similarity
-    const colorDiff = (dr + dg + db) / 3;
-    
-    // Check edge between pixels
-    const edgeStrength = Math.max(edges[idx1], edges[idx2]);
-    
-    // Allow merging if color is similar AND edge is weak
-    return colorDiff < 30 && edgeStrength < 50;
-  };
-  
-  // Region growing
-  for (let y = 10; y < height - 10; y += 5) {
-    for (let x = 10; x < width - 10; x += 5) {
-      const idx = y * width + x;
-      
-      if (visited[idx]) continue;
-      
-      const queue = [[x, y]];
-      const pixels = [];
-      let minX = width, minY = height, maxX = 0, maxY = 0;
-      
-      // BFS flood fill
-      while (queue.length > 0 && pixels.length < 50000) { // Limit size to prevent overflow
-        const [cx, cy] = queue.shift();
-        const cidx = cy * width + cx;
-        
-        if (visited[cidx]) continue;
-        
-        // Check if this pixel should be part of the region
-        if (pixels.length === 0 || arePixelsSimilar(idx, cidx)) {
-          visited[cidx] = 1;
-          labels[cidx] = currentLabel;
-          pixels.push([cx, cy]);
-          
-          minX = Math.min(minX, cx);
-          minY = Math.min(minY, cy);
-          maxX = Math.max(maxX, cx);
-          maxY = Math.max(maxY, cy);
-          
-          // Add unvisited neighbors
-          const neighbors = [
-            [cx + 1, cy], [cx - 1, cy],
-            [cx, cy + 1], [cx, cy - 1]
-          ];
-          
-          for (const [nx, ny] of neighbors) {
-            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-              const nidx = ny * width + nx;
-              if (!visited[nidx]) {
-                queue.push([nx, ny]);
-              }
-            }
-          }
-        }
-      }
-      
-      // Only keep regions of significant size
-      if (pixels.length > 500) {
-        regions.push({
-          id: currentLabel++,
-          pixels: pixels,
-          bounds: { minX, minY, maxX, maxY },
-          center: { x: (minX + maxX) / 2, y: (minY + maxY) / 2 }
-        });
-      }
-    }
-  }
-  
-  console.log(`Found ${regions.length} initial regions`);
-  
-  // Filter to meaningful objects only
-  const objects = [];
-  
-  for (const region of regions) {
-    const { minX, minY, maxX, maxY } = region.bounds;
-    const width = maxX - minX;
-    const height = maxY - minY;
-    const area = width * height;
-    const fillRatio = region.pixels.length / area;
-    
-    // Size constraints
-    if (width < 40 || height < 40) continue;
-    if (area < 3000) continue;
-    
-    // Aspect ratio constraints (avoid lines)
-    const aspectRatio = Math.max(width, height) / Math.min(width, height);
-    if (aspectRatio > 10) continue;
-    
-    // Fill ratio (avoid sparse regions)
-    if (fillRatio < 0.3) continue;
-    
-    // Skip if it spans almost the entire image (likely background)
-    const imageWidth = imageData.width;
-    const imageHeight = imageData.height;
-    if (width > imageWidth * 0.95 && height > imageHeight * 0.95) continue;
-    
-    // Calculate average color
-    let r = 0, g = 0, b = 0;
-    const sampleStep = Math.max(1, Math.floor(region.pixels.length / 100));
-    let sampleCount = 0;
-    
-    for (let i = 0; i < region.pixels.length; i += sampleStep) {
-      const [px, py] = region.pixels[i];
-      const pidx = (py * imageWidth + px) * 4;
-      r += data[pidx];
-      g += data[pidx + 1];
-      b += data[pidx + 2];
-      sampleCount++;
-    }
-    
-    if (sampleCount > 0) {
-      r /= sampleCount;
-      g /= sampleCount;
-      b /= sampleCount;
-    }
-    
-    objects.push({
-      id: `obj_${Date.now()}_${region.id}`,
-      regionId: region.id,
-      bounds: {
-        minX: Math.max(0, minX - 5),
-        minY: Math.max(0, minY - 5),
-        maxX: Math.min(imageWidth, maxX + 5),
-        maxY: Math.min(imageHeight, maxY + 5)
-      },
-      center: region.center,
-      area: region.pixels.length,
-      fillRatio,
-      aspectRatio,
-      color: { r, g, b },
-      pixels: region.pixels
-    });
-  }
-  
-  // Sort by area (largest first)
-  objects.sort((a, b) => b.area - a.area);
-  
-  console.log(`Filtered to ${objects.length} meaningful objects`);
-  
-  // Return top meaningful objects
-  return objects.slice(0, 15);
-}, []);
-
-// Check if one object is contained within another
-
-
-// Replace the analyzeImageForObjects function with this improved version
-const analyzeImageForObjects = useCallback(async () => {
-  const sourceCanvas = sourceCanvasRef.current;
-  if (!sourceCanvas) return;
-  
-  setIsAnalyzing(true);
-  setAnalysisProgress(0);
-  setProcessing({ active: true, status: 'Analyzing image for objects...' });
-  
-  await new Promise(resolve => setTimeout(resolve, 100));
-  
-  try {
-    const ctx = sourceCanvas.getContext('2d');
-    const imageData = ctx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
-    
-    setAnalysisProgress(30);
-    setProcessing({ active: true, status: 'Detecting meaningful objects...' });
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
-    // Use the new detection algorithm
-    const objects = detectMeaningfulObjects(imageData);
-    
-    setAnalysisProgress(100);
+  const handleObjectsDetected = (objects) => {
     setDetectedObjects(objects);
+  };
+
+  // --- IMAGE UPLOAD ---
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
     
-    console.log(`✅ Detected ${objects.length} meaningful objects`);
-    
-    // Make sure the highlight canvas is properly sized
-    const highlightCanvas = objectHighlightCanvasRef.current;
-    if (highlightCanvas) {
-      highlightCanvas.width = sourceCanvas.width;
-      highlightCanvas.height = sourceCanvas.height;
-    }
-    
-    // Force a redraw of highlights
-    if (objects.length > 0) {
-      setShowObjectHighlights(true);
-    }
-    
-  } catch (error) {
-    console.error('Object detection error:', error);
-    setDetectedObjects([]);
-  } finally {
-    setIsAnalyzing(false);
-    setAnalysisProgress(0);
-    setProcessing({ active: false, status: '' });
-  }
-}, [detectMeaningfulObjects]);
-    // ... continuing from Part 2
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        setUploadedImage(img);
+        setUploadedImageSrc(event.target.result);
+        
+        // ... (rest of the function is the same)
+
+        // The analyzeImageForObjects() call is removed from here
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   // --- DRAW OBJECT HIGHLIGHTS ---
   const drawObjectHighlights = useCallback(() => {
@@ -618,7 +203,8 @@ const analyzeImageForObjects = useCallback(async () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     detectedObjects.forEach((obj, index) => {
-      const { minX, minY, maxX, maxY } = obj.bounds;
+      const { box, rle } = obj;
+      const [x1, y1, x2, y2] = box;
       const isHovered = obj.id === hoveredObjectId;
       
       ctx.strokeStyle = isHovered 
@@ -626,58 +212,12 @@ const analyzeImageForObjects = useCallback(async () => {
         : `hsla(${(index * 137.5) % 360}, 70%, 60%, 0.7)`;
       ctx.lineWidth = isHovered ? 3 : 2;
       ctx.setLineDash(isHovered ? [10, 5] : [8, 4]);
-      ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
       ctx.setLineDash([]);
       
       if (isHovered) {
         ctx.fillStyle = 'rgba(139, 92, 246, 0.15)';
-        ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
-      }
-      
-      const handleSize = isHovered ? 8 : 6;
-      ctx.fillStyle = isHovered ? '#8b5cf6' : `hsla(${(index * 137.5) % 360}, 70%, 60%, 0.9)`;
-      
-      ctx.fillRect(minX - handleSize/2, minY - handleSize/2, handleSize, handleSize);
-      ctx.fillRect(maxX - handleSize/2, minY - handleSize/2, handleSize, handleSize);
-      ctx.fillRect(minX - handleSize/2, maxY - handleSize/2, handleSize, handleSize);
-      ctx.fillRect(maxX - handleSize/2, maxY - handleSize/2, handleSize, handleSize);
-      
-      const labelText = `Object ${index + 1}`;
-      ctx.font = isHovered ? 'bold 12px sans-serif' : '11px sans-serif';
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(minX, minY - 20, ctx.measureText(labelText).width + 8, 18);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(labelText, minX + 4, minY - 6);
-      
-      if (isHovered) {
-        ctx.save();
-        ctx.fillStyle = '#8b5cf6';
-        ctx.globalAlpha = 0.8;
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
-        
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 20, 0, 2 * Math.PI);
-        ctx.fill();
-        
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 12, 0, 2 * Math.PI);
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(centerX - 15, centerY);
-        ctx.lineTo(centerX - 8, centerY);
-        ctx.moveTo(centerX + 8, centerY);
-        ctx.lineTo(centerX + 15, centerY);
-        ctx.moveTo(centerX, centerY - 15);
-        ctx.lineTo(centerX, centerY - 8);
-        ctx.moveTo(centerX, centerY + 8);
-        ctx.lineTo(centerX, centerY + 15);
-        ctx.stroke();
-        
-        ctx.restore();
+        ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
       }
     });
   }, [detectedObjects, showObjectHighlights, hoveredObjectId]);
@@ -685,6 +225,16 @@ const analyzeImageForObjects = useCallback(async () => {
   useEffect(() => {
     drawObjectHighlights();
   }, [detectedObjects, showObjectHighlights, hoveredObjectId, drawObjectHighlights]);
+
+  const extractColorPalette = (img) => {
+    if (!window.ColorThief) {
+      setTimeout(() => extractColorPalette(img), 100);
+      return;
+    }
+    const colorThief = new window.ColorThief();
+    const palette = colorThief.getPalette(img, 8);
+    setColorPalette(palette);
+  };
 
   // --- GET OBJECT AT POSITION ---
   const getObjectAtPosition = useCallback((x, y) => {
@@ -695,14 +245,7 @@ const analyzeImageForObjects = useCallback(async () => {
       const { minX, minY, maxX, maxY } = obj.bounds;
       
       if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
-        const isInObject = obj.pixels.some(([px, py]) => {
-          const dist = Math.sqrt((px - x) ** 2 + (py - y) ** 2);
-          return dist < 5;
-        });
-        
-        if (isInObject || (x >= minX && x <= maxX && y >= minY && y <= maxY)) {
-          return obj;
-        }
+        return obj;
       }
     }
     
@@ -710,330 +253,146 @@ const analyzeImageForObjects = useCallback(async () => {
   }, [detectedObjects]);
 
   // --- AUTO-SELECT DETECTED OBJECT ---
-  const selectDetectedObject = useCallback(async (obj) => {
-    if (!selection.mask) return;
-    
-    setProcessing({ active: true, status: 'Selecting object...' });
-    
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
-    try {
-      const sourceCanvas = sourceCanvasRef.current;
-      if (!sourceCanvas) return;
-      
-      const sourceCtx = sourceCanvas.getContext('2d');
-      const imageData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
-      
-      const edgeCanvas = edgeMapCanvasRef.current;
-      const edgeCtx = edgeCanvas.getContext('2d');
-      const edgeImageData = edgeCtx.getImageData(0, 0, edgeCanvas.width, edgeCanvas.height);
-      const edgeMap = new Float32Array(edgeCanvas.width * edgeCanvas.height);
-      
-      for (let i = 0; i < edgeMap.length; i++) {
-        edgeMap[i] = edgeImageData.data[i * 4];
-      }
-      
-      const newMask = new Uint8ClampedArray(sourceCanvas.width * sourceCanvas.height);
-      
-      obj.pixels.forEach(([x, y]) => {
-        const idx = y * sourceCanvas.width + x;
-        newMask[idx] = 255;
-      });
-      
-      const centerX = Math.floor(obj.center.x);
-      const centerY = Math.floor(obj.center.y);
-      
-      const { mask: refinedMask } = improvedFloodFill(
-        centerX,
-        centerY,
-        imageData,
-        { edgeMap },
-        magicGrabSettings
-      );
-      
-      for (let i = 0; i < newMask.length; i++) {
-        newMask[i] = Math.max(newMask[i], refinedMask[i]);
-      }
-      
-      let processedMask = newMask;
-      processedMask = erode(processedMask, sourceCanvas.width, sourceCanvas.height, 1);
-      processedMask = dilate(processedMask, sourceCanvas.width, sourceCanvas.height, 2);
-      
-      if (magicGrabSettings.feather > 0) {
-        processedMask = gaussianBlur(
-          processedMask,
-          sourceCanvas.width,
-          sourceCanvas.height,
-          magicGrabSettings.feather
-        );
-      }
-      
-      const finalMask = new Uint8ClampedArray(selection.mask);
-      for (let i = 0; i < finalMask.length; i++) {
-        if (selection.mode === 'add') {
-          finalMask[i] = Math.max(finalMask[i], processedMask[i]);
-        } else {
-          finalMask[i] = Math.max(0, finalMask[i] - processedMask[i]);
-        }
-      }
-      
-      setSelection(prev => ({
-        ...prev,
-        mask: finalMask,
-        bounds: calculateSelectionBounds(finalMask, sourceCanvas.width, sourceCanvas.height)
-      }));
-      
-      saveSelectionToHistory(finalMask);
-      setProcessing({ active: false, status: '' });
-      
-    } catch (error) {
-      console.error('Object selection error:', error);
-      setProcessing({ active: false, status: '' });
-    }
-  }, [selection, magicGrabSettings, improvedFloodFill, erode, dilate, gaussianBlur, calculateSelectionBounds, saveSelectionToHistory]);
-
-  // --- MAGIC GRAB CLICK HANDLER ---
-// Replace your handleMagicGrabClick with this:
-// --- MAGIC GRAB CLICK HANDLER ---
-const handleMagicGrabClick = useCallback(async (x, y) => {
-  console.log('🎯 Magic Grab clicked at:', { x, y });
-  console.log('Debug Info:', {
-    hasSelectionMask: !!selection.mask,
-    selectionActive: selection.active,
-    processingActive: processing.active,
-    refinementMode: refinementMode,
-    activeTool: activeTool
-  });
-
-  if (!selection.mask) {
-    console.log('❌ No selection mask, returning');
-    return;
-  }
-  
-  // Check for clicked objects first
-  const clickedObject = getObjectAtPosition(x, y);
-  
-  if (clickedObject) {
-    console.log('📦 Clicked on detected object:', clickedObject.id);
-    await selectDetectedObject(clickedObject);
-    return;
-  }
-  
-  console.log('🤖 Starting AI detection...');
-  setProcessing({ active: true, status: '🤖 AI is detecting object...' });
-  
-  try {
-    const sourceCanvas = sourceCanvasRef.current;
-    if (!sourceCanvas) {
-      console.error('❌ No source canvas found');
-      setProcessing({ active: false, status: '' });
+  const handleMagicGrabClick = useCallback(async (x, y) => {
+    if (!selection.mask) {
       return;
     }
     
-    // Convert canvas to base64
-    const imageBase64 = sourceCanvas.toDataURL('image/png');
-    console.log('📸 Image converted to base64, size:', imageBase64.length);
+    const clickedObject = getObjectAtPosition(x, y);
     
-    // Call SAM API
-    console.log('📡 Calling SAM API...');
-    const response = await fetch('/api/sam-segment', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        image: imageBase64,
-        point: { x: Math.round(x), y: Math.round(y) }
-      })
-    });
+    // If an object is clicked, use its center for a more accurate grab
+    const targetX = clickedObject ? clickedObject.bounds.minX + (clickedObject.bounds.maxX - clickedObject.bounds.minX) / 2 : x;
+    const targetY = clickedObject ? clickedObject.bounds.minY + (clickedObject.bounds.maxY - clickedObject.bounds.minY) / 2 : y;
+
+    setProcessing({ active: true, status: '🤖 AI is detecting object...' });
     
-    console.log('📨 API Response status:', response.status);
-    const result = await response.json();
-    console.log('📦 API Result:', result);
-    
-    if (!result.success) {
-      console.error('❌ API returned error:', result.error);
-      throw new Error(result.error || 'API failed');
-    }
-    
-    if (result.mask) {
-      console.log('✅ Mask received from AI!');
-      console.log('Mask type:', typeof result.mask);
-      
-      // Handle different mask formats
-      if (typeof result.mask === 'string') {
-        // If mask is a URL or base64 string
-        const maskImage = new Image();
-        
-        await new Promise((resolve, reject) => {
-          maskImage.onload = resolve;
-          maskImage.onerror = reject;
-          
-          // Handle both URL and base64
-          if (result.mask.startsWith('http')) {
-            maskImage.src = result.mask;
-          } else if (result.mask.startsWith('data:')) {
-            maskImage.src = result.mask;
-          } else {
-            // Assume it's base64 without prefix
-            maskImage.src = `data:image/png;base64,${result.mask}`;
-          }
-        });
-        
-        // Create canvas for mask
-        const maskCanvas = document.createElement('canvas');
-        maskCanvas.width = sourceCanvas.width;
-        maskCanvas.height = sourceCanvas.height;
-        const maskCtx = maskCanvas.getContext('2d');
-        maskCtx.drawImage(maskImage, 0, 0, sourceCanvas.width, sourceCanvas.height);
-        
-        const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-        const newMask = new Uint8ClampedArray(sourceCanvas.width * sourceCanvas.height);
-        
-        // Convert mask image to selection mask
-        for (let i = 0; i < newMask.length; i++) {
-          // Use red channel as mask value (SAM usually returns grayscale)
-          const pixelIndex = i * 4;
-          newMask[i] = maskData.data[pixelIndex] > 128 ? 255 : 0;
-        }
-        
-        // Apply to selection
-        const finalMask = new Uint8ClampedArray(selection.mask);
-        for (let i = 0; i < finalMask.length; i++) {
-          if (selection.mode === 'add') {
-            finalMask[i] = Math.max(finalMask[i], newMask[i]);
-          } else {
-            finalMask[i] = Math.max(0, finalMask[i] - newMask[i]);
-          }
-        }
-        
-        setSelection(prev => ({
-          ...prev,
-          mask: finalMask,
-          bounds: calculateSelectionBounds(finalMask, sourceCanvas.width, sourceCanvas.height)
-        }));
-        
-        saveSelectionToHistory(finalMask);
-        setProcessing({ active: false, status: '' });
-        console.log('✅ AI selection applied successfully!');
-        
-      } else if (Array.isArray(result.mask)) {
-        // If mask is an array of values
-        const newMask = new Uint8ClampedArray(result.mask);
-        
-        // Apply to selection
-        const finalMask = new Uint8ClampedArray(selection.mask);
-        for (let i = 0; i < finalMask.length; i++) {
-          if (selection.mode === 'add') {
-            finalMask[i] = Math.max(finalMask[i], newMask[i]);
-          } else {
-            finalMask[i] = Math.max(0, finalMask[i] - newMask[i]);
-          }
-        }
-        
-        setSelection(prev => ({
-          ...prev,
-          mask: finalMask,
-          bounds: calculateSelectionBounds(finalMask, sourceCanvas.width, sourceCanvas.height)
-        }));
-        
-        saveSelectionToHistory(finalMask);
-        setProcessing({ active: false, status: '' });
-        console.log('✅ AI selection applied successfully!');
-      }
-      
-    } else {
-      console.error('❌ No mask in API response');
-      throw new Error('No mask returned from AI');
-    }
-  } catch (error) {
-    console.error('❌ SAM segmentation error:', error);
-    console.log('⚠️ Falling back to local detection...');
-    setProcessing({ active: true, status: 'Using local detection...' });
-    
-    // Fallback to original magic grab method
     try {
       const sourceCanvas = sourceCanvasRef.current;
       if (!sourceCanvas) {
-        setProcessing({ active: false, status: '' });
-        return;
+        throw new Error('No source canvas found');
       }
       
-      const sourceCtx = sourceCanvas.getContext('2d');
-      const imageData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+      const imageBase64 = sourceCanvas.toDataURL('image/png');
       
-      const edgeCanvas = edgeMapCanvasRef.current;
-      if (!edgeCanvas) {
-        setProcessing({ active: false, status: '' });
-        return;
+      const response = await fetch('/api/sam-segment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: imageBase64,
+          point: { x: Math.round(targetX), y: Math.round(targetY) },
+          box: clickedObject ? [clickedObject.bounds.minX, clickedObject.bounds.minY, clickedObject.bounds.maxX, clickedObject.bounds.maxY] : [targetX, targetY, targetX, targetY]
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'API failed');
       }
       
-      const edgeCtx = edgeCanvas.getContext('2d');
-      const edgeImageData = edgeCtx.getImageData(0, 0, edgeCanvas.width, edgeCanvas.height);
-      const edgeMap = new Float32Array(edgeCanvas.width * edgeCanvas.height);
-      
-      for (let i = 0; i < edgeMap.length; i++) {
-        edgeMap[i] = edgeImageData.data[i * 4];
-      }
-      
-      const { mask: detectedMask } = improvedFloodFill(
-        Math.floor(x),
-        Math.floor(y),
-        imageData,
-        { edgeMap },
-        magicGrabSettings
-      );
-      
-      let processedMask = detectedMask;
-      processedMask = erode(processedMask, sourceCanvas.width, sourceCanvas.height, 1);
-      processedMask = dilate(processedMask, sourceCanvas.width, sourceCanvas.height, 2);
-      
-      if (magicGrabSettings.feather > 0) {
-        processedMask = gaussianBlur(
-          processedMask,
-          sourceCanvas.width,
-          sourceCanvas.height,
-          magicGrabSettings.feather
-        );
-      }
-      
-      const newMask = new Uint8ClampedArray(selection.mask);
-      for (let i = 0; i < newMask.length; i++) {
-        if (selection.mode === 'add') {
-          newMask[i] = Math.max(newMask[i], processedMask[i]);
-        } else {
-          newMask[i] = Math.max(0, newMask[i] - processedMask[i]);
+      if (result.mask) {
+        const decodedMask = decodeRle(result.mask);
+        const newMask = new Uint8ClampedArray(decodedMask.length);
+        for (let i = 0; i < decodedMask.length; i++) {
+          newMask[i] = decodedMask[i] * 255;
         }
+
+        const finalMask = new Uint8ClampedArray(selection.mask);
+        for (let i = 0; i < finalMask.length; i++) {
+          if (selection.mode === 'add') {
+            finalMask[i] = Math.max(finalMask[i], newMask[i]);
+          } else {
+            finalMask[i] = Math.max(0, finalMask[i] - newMask[i]);
+          }
+        }
+        
+        setSelection(prev => ({
+          ...prev,
+          mask: finalMask,
+          bounds: calculateSelectionBounds(finalMask, sourceCanvas.width, sourceCanvas.height)
+        }));
+        
+        saveSelectionToHistory(finalMask);
+      } else {
+        throw new Error('No mask returned from AI');
       }
+    } catch (error) {
+      setProcessing({ active: true, status: 'Using local detection...' });
       
-      setSelection(prev => ({
-        ...prev,
-        mask: newMask,
-        bounds: calculateSelectionBounds(newMask, sourceCanvas.width, sourceCanvas.height)
-      }));
-      
-      saveSelectionToHistory(newMask);
-      setProcessing({ active: false, status: '' });
-      console.log('✅ Local fallback selection applied');
-      
-    } catch (fallbackError) {
-      console.error('Fallback magic grab error:', fallbackError);
+      // Fallback to original magic grab method
+      try {
+        const sourceCanvas = sourceCanvasRef.current;
+        if (!sourceCanvas) return;
+        
+        const sourceCtx = sourceCanvas.getContext('2d');
+        const imageData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+        
+        const edgeCanvas = edgeMapCanvasRef.current;
+        if (!edgeCanvas) return;
+        
+        const edgeCtx = edgeCanvas.getContext('2d');
+        const edgeImageData = edgeCtx.getImageData(0, 0, edgeCanvas.width, edgeCanvas.height);
+        const edgeMap = new Float32Array(edgeCanvas.width * edgeCanvas.height);
+        
+        for (let i = 0; i < edgeMap.length; i++) {
+          edgeMap[i] = edgeImageData.data[i * 4];
+        }
+        
+        const { mask: detectedMask } = improvedFloodFill(
+          Math.floor(x), // Fallback should still use original click
+          Math.floor(y),
+          imageData,
+          { edgeMap },
+          magicGrabSettings
+        );
+        
+        let processedMask = detectedMask;
+        processedMask = erode(processedMask, sourceCanvas.width, sourceCanvas.height, 1);
+        processedMask = dilate(processedMask, sourceCanvas.width, sourceCanvas.height, 2);
+        
+        if (magicGrabSettings.feather > 0) {
+          processedMask = gaussianBlur(
+            processedMask,
+            sourceCanvas.width,
+            sourceCanvas.height,
+            magicGrabSettings.feather
+          );
+        }
+        
+        const newMask = new Uint8ClampedArray(selection.mask);
+        for (let i = 0; i < newMask.length; i++) {
+          if (selection.mode === 'add') {
+            newMask[i] = Math.max(newMask[i], processedMask[i]);
+          } else {
+            newMask[i] = Math.max(0, newMask[i] - processedMask[i]);
+          }
+        }
+        
+        setSelection(prev => ({
+          ...prev,
+          mask: newMask,
+          bounds: calculateSelectionBounds(newMask, sourceCanvas.width, sourceCanvas.height)
+        }));
+        
+        saveSelectionToHistory(newMask);
+        
+      } catch (fallbackError) {
+      }
+    } finally {
       setProcessing({ active: false, status: '' });
     }
-  }
-}, [
-  selection.mask, 
-  selection.mode,
-  getObjectAtPosition,
-  selectDetectedObject,
-  magicGrabSettings,
-  improvedFloodFill,
-  erode,
-  dilate,
-  gaussianBlur,
-  calculateSelectionBounds,
-  saveSelectionToHistory
-]);
+  }, [
+    selection.mask, 
+    selection.mode,
+    getObjectAtPosition,
+    magicGrabSettings,
+    improvedFloodFill,
+    erode,
+    dilate,
+    gaussianBlur,
+    calculateSelectionBounds,
+    saveSelectionToHistory
+  ]);
   // --- HELPER FUNCTIONS ---
   const getSelectedLayer = useCallback(() => {
     return layers.find(l => l.id === selectedLayerId);
@@ -1296,10 +655,7 @@ const handleMagicGrabClick = useCallback(async (x, y) => {
           setSelectedLayerId(newLayer.id);
           renderCanvas([newLayer]);
           saveToHistory([newLayer]);
-          
-          setTimeout(() => {
-            analyzeImageForObjects();
-          }, 500);
+          extractColorPalette(img);
         }
       };
       img.src = event.target.result;
@@ -1789,6 +1145,75 @@ const handleMagicGrabClick = useCallback(async (x, y) => {
     }
   };
 
+  const handleRemoveBackground = async (layerId) => {
+    const layer = layers.find(l => l.id === layerId);
+    if (!layer) return;
+
+    setProcessing({ active: true, status: 'Removing background...' });
+
+    try {
+      const response = await fetch('/api/background-removal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: layer.src })
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'API failed');
+      }
+
+      updateLayer(layerId, { src: result.image });
+
+    } catch (error) {
+      toast({
+        title: "Error Removing Background",
+        description: "Could not remove the background. Please try again.",
+      });
+    } finally {
+      setProcessing({ active: false, status: '' });
+    }
+  };
+
+  const handleVectorize = async () => {
+    const sourceCanvas = sourceCanvasRef.current;
+    if (!sourceCanvas) return;
+
+    setIsVectorizing(true);
+    setProcessing({ active: true, status: 'Vectorizing image...' });
+
+    try {
+        const imageBase64 = sourceCanvas.toDataURL('image/png');
+
+        const response = await fetch('/api/vectorize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                image: imageBase64,
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            setVectorizedSvg(result.svg);
+        } else {
+            throw new Error(result.error || 'API failed');
+        }
+
+    } catch (error) {
+        toast({
+            title: "Error Vectorizing Image",
+            description: error.message || "Could not vectorize the image. Please try again.",
+        });
+    } finally {
+        setIsVectorizing(false);
+        setProcessing({ active: false, status: '' });
+    }
+  };
+
+
   // --- SELECTION MANAGEMENT ---
   const startSelection = () => {
     const canvas = sourceCanvasRef.current;
@@ -2157,6 +1582,7 @@ const handleMagicGrabClick = useCallback(async (x, y) => {
             <div className="w-full h-px bg-gray-200 dark:bg-slate-700 my-2" />
             <ToolButton icon={MousePointer} label="Move" tool="move" activeTool={activeTool} onClick={setActiveTool} />
             <ToolButton icon={Wand2} label="Magic Grab" tool="select" activeTool={activeTool} onClick={setActiveTool} color="purple" isDisabled={!uploadedImage}/>
+            <ToolButton icon={Zap} label="Vectorize" tool="vectorize" activeTool={activeTool} onClick={handleVectorize} color="yellow" isDisabled={!uploadedImage || isVectorizing}/>
             
             {uploadedImage && (
               <>
@@ -2223,36 +1649,18 @@ const handleMagicGrabClick = useCallback(async (x, y) => {
             <EmptyState onClick={() => fileInputRef.current.click()} /> 
           )}
           
-          {/* Object Detection Info Panel */}
-          {detectedObjects.length > 0 && !selection.active && (
-            <div className="absolute top-4 left-4 bg-white dark:bg-slate-800 rounded-lg shadow-xl p-3 max-w-xs">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Target className="text-purple-500" size={16} />
-                  <span className="text-sm font-semibold">Detected Objects</span>
-                </div>
-                <button
-                  onClick={() => setShowObjectHighlights(!showObjectHighlights)}
-                  className={`p-1 rounded ${showObjectHighlights ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600' : 'text-gray-400'}`}
-                  title="Toggle Highlights"
-                >
-                  <Eye size={14} />
-                </button>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                {detectedObjects.length} extractable object{detectedObjects.length !== 1 ? 's' : ''} found
-              </p>
-              <button
-                onClick={() => {
-                  setActiveTool('select');
-                }}
-                className="w-full text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1.5 rounded-md hover:from-purple-600 hover:to-pink-600 transition-colors flex items-center justify-center gap-1"
-              >
-                <Wand2 size={12} />
-                Click on any object to select
-              </button>
-            </div>
+          {uploadedImage && (
+            <ObjectDetectionPanel
+              image={uploadedImageSrc}
+              onObjectsDetected={handleObjectsDetected}
+              showObjectHighlights={showObjectHighlights}
+              setShowObjectHighlights={setShowObjectHighlights}
+              onStartSelection={startSelection}
+            />
           )}
+
+          <TextDetectionPanel detectedText={detectedText} />
+          <ColorPalettePanel palette={colorPalette} />
           
           {/* Analysis Progress */}
           {isAnalyzing && (
@@ -2275,6 +1683,7 @@ const handleMagicGrabClick = useCallback(async (x, y) => {
           
           {selection.active && (
             <SelectionToolbar 
+              processing={processing}
               mode={selection.mode}
               setMode={(mode) => setSelection(prev => ({ ...prev, mode }))}
               refinementMode={refinementMode}
@@ -2301,52 +1710,7 @@ const handleMagicGrabClick = useCallback(async (x, y) => {
           )}
           
           {processing.active && <ProcessingOverlay status={processing.status} />}
-        </main>
-                  {/* Test AI Connection Button - Add this after the main canvas */}
-          {uploadedImage && (
-            <button 
-              onClick={async () => {
-                console.log('🧪 Testing AI connection...');
-                try {
-                  // First test GET
-                  const getTest = await fetch('/api/sam-segment');
-                  const getResult = await getTest.json();
-                  console.log('GET test:', getResult);
-                  
-                  if (!getResult.hasToken) {
-                    alert('❌ No API token found! Please check your .env.local file');
-                    return;
-                  }
-                  
-                  // Then test POST with a simple image
-                  const postTest = await fetch('/api/sam-segment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-                      point: { x: 100, y: 100 }
-                    })
-                  });
-                  const postResult = await postTest.json();
-                  console.log('POST test:', postResult);
-                  
-                  if (postResult.success) {
-                    alert('✅ AI Connection Working!\n\nClick on any object with Magic Grab tool to use AI selection.');
-                  } else {
-                    alert(`⚠️ AI API responded but with error:\n${postResult.error}\n\nFallback to local detection will be used.`);
-                  }
-                } catch (error) {
-                  console.error('Test error:', error);
-                  alert('❌ Connection test failed:\n' + error.message);
-                }
-              }}
-              className="fixed bottom-20 right-4 bg-purple-500 text-white px-4 py-2 rounded-lg z-50 hover:bg-purple-600 shadow-lg flex items-center gap-2"
-              title="Test AI Connection"
-            >
-              <Wand2 size={16} />
-              <span>Test AI</span>
-            </button>
-          )}
+                </main>
         {/* RIGHT SIDEBAR - LAYERS PANEL */}
         <aside className={`flex-shrink-0 bg-white dark:bg-slate-800 border-l border-gray-200 dark:border-slate-700 transition-all duration-300 z-20 ${isSidebarOpen ? 'w-80' : 'w-0'} overflow-hidden`}>
           <div className="h-full flex flex-col">
@@ -2385,6 +1749,7 @@ const handleMagicGrabClick = useCallback(async (x, y) => {
                       onMoveUp={() => moveLayer(layer.id, 'up')}
                       onMoveDown={() => moveLayer(layer.id, 'down')}
                       onOpacityChange={(opacity) => updateLayer(layer.id, { opacity })}
+                      onRemoveBackground={() => handleRemoveBackground(layer.id)}
                       canMoveUp={index > 0}
                       canMoveDown={index < layers.length - 1}
                     />
@@ -2413,6 +1778,47 @@ const handleMagicGrabClick = useCallback(async (x, y) => {
           </button>
         )}
       </div>
+      {vectorizedSvg && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 max-w-3xl w-full">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Vectorized SVG</h3>
+                    <button onClick={() => setVectorizedSvg(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full">
+                        <X size={24} />
+                    </button>
+                </div>
+                <div className="bg-gray-100 dark:bg-slate-900 p-4 rounded-lg overflow-auto max-h-[60vh]">
+                    <pre className="text-sm whitespace-pre-wrap">
+                        <code>
+                            {vectorizedSvg}
+                        </code>
+                    </pre>
+                </div>
+                <div className="flex justify-end gap-4 mt-4">
+                    <button
+                        onClick={() => navigator.clipboard.writeText(vectorizedSvg)}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                    >
+                        Copy SVG
+                    </button>
+                    <button
+                        onClick={() => {
+                            const blob = new Blob([vectorizedSvg], { type: 'image/svg+xml' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'vectorized-image.svg';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                        }}
+                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                    >
+                        Download SVG
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2437,16 +1843,38 @@ const ToolButton = ({ icon: Icon, label, tool, activeTool, onClick, color, isDis
   );
 };
 
-const SelectionToolbar = ({ 
-  mode, setMode, 
-  refinementMode, setRefinementMode,
-  brushSettings, setBrushSettings,
-  magicGrabSettings, setMagicGrabSettings,
-  onConfirm, onCancel,
-  showPreview, setShowPreview,
+const SelectionToolbar = ({
+
+  processing,
+
+  mode, setMode,
+
+  refinementMode,
+
+  setRefinementMode,
+
+  brushSettings,
+
+  setBrushSettings,
+
+  magicGrabSettings,
+
+  setMagicGrabSettings,
+
+  onConfirm,
+
+  onCancel,
+
+  showPreview,
+
+  setShowPreview,
+
   detectedObjectsCount,
+
   showObjectHighlights,
+
   setShowObjectHighlights
+
 }) => {
   const [showBrushSettings, setShowBrushSettings] = useState(false);
   const [showMagicSettings, setShowMagicSettings] = useState(false);
@@ -2880,6 +2308,7 @@ const LayerItem = ({
   onMoveUp,
   onMoveDown,
   onOpacityChange,
+  onRemoveBackground,
   canMoveUp,
   canMoveDown 
 }) => {
@@ -2945,13 +2374,18 @@ const LayerItem = ({
             
             {showMenu && (
               <div className="absolute right-0 top-8 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg py-1 z-50 min-w-[120px]">
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDuplicate(); setShowMenu(false); }}
-                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
-                >
-                  <Copy size={14} /> Duplicate
-                </button>
-                {canMoveUp && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); onDuplicate(); setShowMenu(false); }}
+                                    className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+                                  >
+                                    <Copy size={14} /> Duplicate
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); onRemoveBackground(); setShowMenu(false); }}
+                                    className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+                                  >
+                                    <Wand2 size={14} /> Remove BG
+                                  </button>                {canMoveUp && (
                   <button
                     onClick={(e) => { e.stopPropagation(); onMoveUp(); setShowMenu(false); }}
                     className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"

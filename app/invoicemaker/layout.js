@@ -1,3 +1,4 @@
+import "./style.css";
 import InvoiceNav from "./client/components/invoice-nav";
 
 export default function InvoiceMakerLayout({ children }) {

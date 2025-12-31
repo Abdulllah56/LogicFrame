@@ -6,15 +6,13 @@ import { useToast } from "../client/hooks/use-toast";
 import { formatCurrency } from "../client/lib/invoice-utils";
 import { useInvoices } from "../client/hooks/useInvoices";
 import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
-import "../style.css"
-import { FileText, DollarSign, Clock, AlertTriangle, Plus } from "lucide-react";
+import { FileText, DollarSign, Clock, AlertTriangle, Plus, ArrowRight } from "lucide-react";
 
 export default function Dashboard() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const { invoices, isLoading, getStats, loadInvoices } = useInvoices();
-  
-  // Set up mock data for demonstration
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
@@ -24,7 +22,6 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, authLoading, toast]);
 
-  // Listen for storage changes to update in real-time
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'invoicemaker_invoices') {
@@ -33,8 +30,7 @@ export default function Dashboard() {
     };
 
     window.addEventListener('storage', handleStorageChange);
-    
-    // Check for updates every 5 seconds as a fallback
+
     const intervalId = setInterval(loadInvoices, 5000);
 
     return () => {
@@ -46,214 +42,165 @@ export default function Dashboard() {
   const stats = getStats();
   const statsLoading = isLoading;
 
-  const recentInvoices = [...invoices].sort((a, b) => 
+  const recentInvoices = [...invoices].sort((a, b) =>
     new Date(b.createdAt) - new Date(a.createdAt)
-  ).slice(0, 2);
+  ).slice(0, 5);
   const invoicesLoading = isLoading;
 
   if (authLoading || !isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Section */}
-      <div className="space-y-1">
-        <h1 className="text-4xl font-bold tracking-tight">
+    <div className="space-y-10 relative min-h-screen">
+      <div className="fixed inset-0 bg-gradient-radial from-[rgba(0,217,255,0.08)] from-0% to-transparent to-50% via-[rgba(0,217,255,0.06)] via-80% z-[-1] pointer-events-none"></div>
+      <div className="fixed w-[300px] h-[300px] bg-[rgba(0,217,255,0.3)] rounded-full blur-[80px] opacity-30 top-[10%] left-[10%] animate-float z-[-1] pointer-events-none"></div>
+      <div className="fixed w-[400px] h-[400px] bg-[rgba(0,217,255,0.2)] rounded-full blur-[80px] opacity-30 bottom-[10%] right-[10%] animate-float animation-delay-7000 z-[-1] pointer-events-none"></div>
+      <div className="space-y-2">
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
           Welcome back, {user?.firstName || "User"}!
         </h1>
         <p className="text-base text-muted-foreground">
-          Here's an overview of your invoice activity and key metrics
+          Here's a snapshot of your invoicing activity.
         </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-border/50 hover:border-border transition-all duration-200 hover:shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Invoices</CardTitle>
-            <div className="h-9 w-9 rounded-lg bg-muted/50 flex items-center justify-center">
-              <FileText className="h-4 w-4 text-foreground/70" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold tracking-tight">
-              {statsLoading ? (
-                <div className="h-9 bg-muted animate-pulse rounded w-16" />
-              ) : (
-                stats?.totalInvoices || 0
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 hover:border-border transition-all duration-200 hover:shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Paid Amount</CardTitle>
-            <div className="h-9 w-9 rounded-lg bg-green-500/10 flex items-center justify-center">
-              <DollarSign className="h-4 w-4 text-green-600 dark:text-green-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold tracking-tight text-green-600 dark:text-green-500">
-              {statsLoading ? (
-                <div className="h-9 bg-muted animate-pulse rounded w-24" />
-              ) : (
-                formatCurrency(stats?.paidAmount || 0)
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 hover:border-border transition-all duration-200 hover:shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
-            <div className="h-9 w-9 rounded-lg bg-orange-500/10 flex items-center justify-center">
-              <Clock className="h-4 w-4 text-orange-600 dark:text-orange-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold tracking-tight text-orange-600 dark:text-orange-500">
-              {statsLoading ? (
-                <div className="h-9 bg-muted animate-pulse rounded w-24" />
-              ) : (
-                formatCurrency(stats?.pendingAmount || 0)
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 hover:border-border transition-all duration-200 hover:shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Overdue</CardTitle>
-            <div className="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center">
-              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold tracking-tight text-red-600 dark:text-red-500">
-              {statsLoading ? (
-                <div className="h-9 bg-muted animate-pulse rounded w-24" />
-              ) : (
-                formatCurrency(stats?.overdueAmount || 0)
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="dashboard-grid">
+        <StatCard
+          title="Total Invoices"
+          value={stats?.totalInvoices || 0}
+          icon={FileText}
+          loading={statsLoading}
+          color="text-cyan-600 dark:text-[#00D9FF]"
+        />
+        <StatCard
+          title="Paid Amount"
+          value={formatCurrency(stats?.paidAmount || 0)}
+          icon={DollarSign}
+          loading={statsLoading}
+          color="text-green-600 dark:text-[#4ade80]"
+        />
+        <StatCard
+          title="Pending"
+          value={formatCurrency(stats?.pendingAmount || 0)}
+          icon={Clock}
+          loading={statsLoading}
+          color="text-orange-600 dark:text-[#fb923c]"
+        />
+        <StatCard
+          title="Overdue"
+          value={formatCurrency(stats?.overdueAmount || 0)}
+          icon={AlertTriangle}
+          loading={statsLoading}
+          color="text-red-600 dark:text-[#f87171]"
+        />
       </div>
 
-      {/* Recent Activity */}
-      <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-semibold">Recent Invoices</CardTitle>
-            <a href="/invoicemaker/invoices" className="text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors group">
-              View All
-              <svg 
-                viewBox="0 0 24 24" 
-                className="w-4 h-4 transition-transform group-hover:translate-x-0.5" 
-                xmlns="http://www.w3.org/2000/svg"
-                fill="currentColor"
-              >
-                <path d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"></path>
-              </svg>
-            </a>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-2">
-          {invoicesLoading ? (
+      <div className="recent-invoices-card">
+        <div className="recent-invoices-header">
+          <h2 className="recent-invoices-title">Recent Invoices</h2>
+          <a href="/invoicemaker/invoices" className="text-sm font-medium text-primary hover:underline flex items-center gap-1 transition-colors group">
+            View All
+            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+          </a>
+        </div>
+        {invoicesLoading ? (
+          <div className="p-6">
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-4">
-                  <div className="w-8 h-8 bg-muted animate-pulse rounded-full" />
+                <div key={i} className="flex items-center space-x-4 p-2">
+                  <div className="w-10 h-10 bg-muted animate-pulse rounded-lg" />
                   <div className="flex-1 space-y-2">
                     <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
                     <div className="h-3 bg-muted animate-pulse rounded w-1/2" />
                   </div>
-                  <div className="h-4 bg-muted animate-pulse rounded w-16" />
+                  <div className="h-5 bg-muted animate-pulse rounded w-20" />
                 </div>
               ))}
             </div>
-          ) : recentInvoices.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <div className="mx-auto h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-                <FileText className="h-8 w-8 text-muted-foreground/50" />
-              </div>
-              <h3 className="font-semibold text-foreground mb-1">No invoices yet</h3>
-              <p className="text-sm mb-6">Create your first invoice to get started!</p>
-              <a href="/invoicemaker/invoices">
-                <button className="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-opacity font-medium text-sm">
-                  <Plus className="h-4 w-4" />
-                  Create Invoice
-                </button>
-              </a>
+          </div>
+        ) : recentInvoices.length === 0 ? (
+          <div className="no-invoices-container">
+            <div className="no-invoices-icon">
+              <FileText className="h-8 w-8 text-gray-400" />
             </div>
-          ) : (
-            <div className="space-y-1">
-              {recentInvoices.map((invoice) => {
-                const getStatusColor = (status) => {
-                  switch (status) {
-                    case "paid":
-                      return "text-green-600";
-                    case "pending":
-                      return "text-orange-600";
-                    case "overdue":
-                      return "text-red-600";
-                    default:
-                      return "text-muted-foreground";
-                  }
-                };
-
-                const getStatusIcon = (status) => {
-                  switch (status) {
-                    case "paid":
-                      return "✓";
-                    case "pending":
-                      return "○";
-                    case "overdue":
-                      return "⚠";
-                    default:
-                      return "○";
-                  }
-                };
-
-                return (
-                  <a 
-                    key={invoice.id} 
-                    href={`/invoicemaker/invoices/${invoice.id}`}
-                    className="flex items-center gap-4 py-4 px-3 rounded-lg hover:bg-muted/50 transition-colors group"
-                  >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-semibold ${
-                      invoice.status === "paid" 
-                        ? "bg-green-500/10 text-green-600 dark:text-green-500"
-                        : invoice.status === "pending"
-                        ? "bg-orange-500/10 text-orange-600 dark:text-orange-500"
-                        : "bg-red-500/10 text-red-600 dark:text-red-500"
-                    }`}>
-                      {getStatusIcon(invoice.status)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground group-hover:text-foreground truncate">
-                        Invoice {invoice.invoiceNumber}
-                      </p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {invoice.to?.name || 'No Client Name'} • {new Date(invoice.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span className={`font-semibold text-base tabular-nums ${getStatusColor(invoice.status)}`}>
-                      {formatCurrency(invoice.items.reduce((sum, item) => sum + (item.quantity * item.rate), 0))}
-                    </span>
-                  </a>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            <h3 className="no-invoices-title">No Invoices Found</h3>
+            <p className="no-invoices-description">It looks like you haven't created any invoices yet. Get started by creating your first one.</p>
+            <a href="/invoicemaker/invoices/new" className="common-button">
+              <Plus className="h-4 w-4 mr-2" />
+              Create First Invoice
+            </a>
+          </div>
+        ) : (
+          <table className="recent-invoices-table">
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>To</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentInvoices.map((invoice) => (
+                <tr key={invoice.id}>
+                  <td>{invoice.invoiceNumber}</td>
+                  <td>{invoice.to?.name || 'N/A'}</td>
+                  <td>{formatCurrency(invoice.items.reduce((sum, item) => sum + (item.quantity * item.rate), 0))}</td>
+                  <td><StatusBadge status={invoice.status} /></td>
+                  <td>{new Date(invoice.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    <a href={`/invoicemaker/invoices/${invoice.id}`} className="text-primary hover:underline">
+                      View
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
+
+const StatCard = ({ title, value, icon: Icon, loading, color, bgColor }) => (
+  <div className="stat-card">
+    <div className="stat-card-header">
+      <h3 className="stat-card-title">{title}</h3>
+      <div className={`stat-card-icon ${bgColor}`}>
+        <Icon className={`h-6 w-6 ${color}`} />
+      </div>
+    </div>
+    <div>
+      {loading ? (
+        <div className="h-8 bg-muted animate-pulse rounded w-24 mt-1" />
+      ) : (
+        <p className={`stat-card-value ${color}`}>{value}</p>
+      )}
+    </div>
+  </div>
+);
+
+const StatusBadge = ({ status }) => {
+  const statusConfig = {
+    paid: { text: "Paid", className: "status-paid" },
+    pending: { text: "Pending", className: "status-pending" },
+    overdue: { text: "Overdue", className: "status-overdue" },
+    default: { text: "Draft", className: "status-draft" },
+  };
+
+  const { text, className } = statusConfig[status] || statusConfig.default;
+
+  return (
+    <span className={`status-badge ${className}`}>
+      {text}
+    </span>
+  );
+};
