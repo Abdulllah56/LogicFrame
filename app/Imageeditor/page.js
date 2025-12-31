@@ -167,26 +167,7 @@ export default function AIImageEditor() {
     setDetectedObjects(objects);
   };
 
-  // --- IMAGE UPLOAD ---
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        setUploadedImage(img);
-        setUploadedImageSrc(event.target.result);
-        
-        // ... (rest of the function is the same)
-
-        // The analyzeImageForObjects() call is removed from here
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-  };
+  // --- IMAGE UPLOAD (defined later in file) ---
 
   // --- DRAW OBJECT HIGHLIGHTS ---
   const drawObjectHighlights = useCallback(() => {

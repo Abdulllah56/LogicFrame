@@ -2,18 +2,18 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
-import { Button } from "../components/ui/button";
-import { SummaryCard } from "../components/dashboard/SummaryCard";
-import { ExpenseChart } from "../components/dashboard/ExpenseChart  ";
-import { CategoryBreakdown } from "@/components/dashboard/CategoryBreakdown";
-import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
-import { SavingsGoals } from "@/components/dashboard/SavingsGoals";
+import { Button } from "../../FinanceFriend/components/ui/button";
+import { SummaryCard } from "../../FinanceFriend/components/dashboard/SummaryCard";
+import { ExpenseChart } from "../../FinanceFriend/components/dashboard/ExpenseChart";
+import { CategoryBreakdown } from "../../FinanceFriend/components/dashboard/CategoryBreakdown";
+import { RecentTransactions } from "../../FinanceFriend/components/dashboard/RecentTransactions";
+import { SavingsGoals } from "../../FinanceFriend/components/dashboard/SavingsGoals";
 import { PlusIcon } from "lucide-react";
-import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog";
-import { useExpenses, useCategories } from "@/lib/hooks/useExpenses";
-import { useBills } from "@/lib/hooks/useBills";
-import { useGoals } from "@/lib/hooks/useGoals";
-import { formatCurrency } from "@/lib/utils/date-utils";
+import { AddExpenseDialog } from "../../FinanceFriend/components/expenses/AddExpenseDialog";
+import { useExpenses, useCategories } from "../../FinanceFriend/client/lib/hooks/useExpenses";
+import { useBills } from "../../FinanceFriend/client/lib/hooks/useBills";
+import { useGoals } from "../../FinanceFriend/client/lib/hooks/useGoals";
+import { formatCurrency } from "../../FinanceFriend/client/lib/utils/date-utils";
 
 export default function Dashboard() {
   const [showAddExpense, setShowAddExpense] = useState(false);
