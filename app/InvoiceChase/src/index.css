@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Scoped variables for Invoice Chase app to override globals */
+@layer base {
+  .invoice-chase-app {
+    /* 
+       Forcing Dark/Cyan theme by default to match Landing Page 
+       regardless of system Light/Dark mode preference initially.
+    */
+
+    /* Background: #0f1729 -> HSL 222 47% 11% */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    /* Card: #1e293b approx -> HSL 217 33% 17% */
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Primary: #00D9FF -> HSL 189 100% 50% */
+    --primary: 189 100% 50%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 189 100% 50%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 189 100% 50%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --pending: 48 96% 53%;
+    --pending-foreground: 222 47% 11%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 189 100% 50%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 20%;
+    --sidebar-ring: 189 100% 50%;
+  }
+
+  /* 
+     Ensure dark mode uses the same or compatible values. 
+     Since we want to match the Landing Page (which is dark), 
+     we can just inherit or explicitly set same values.
+  */
+  .dark .invoice-chase-app {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 189 100% 50%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 189 100% 50%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 189 100% 50%;
+  }
+}
+
+@layer base {
+  .invoice-chase-app {
+    border-color: hsl(var(--border));
+  }
+
+  /* Apply background text color to the app wrapper */
+  .invoice-chase-app {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
