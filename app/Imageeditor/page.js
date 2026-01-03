@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-  Upload, Sparkles, Download, ZoomIn, ZoomOut, MousePointer, 
-  Magnet, Layers, Eye, EyeOff, Trash2, Lock, Unlock, Settings, 
+import {
+  Upload, Sparkles, Download, ZoomIn, ZoomOut, MousePointer,
+  Magnet, Layers, Eye, EyeOff, Trash2, Lock, Unlock, Settings,
   Copy, ChevronUp, ChevronDown, X, ChevronsLeft, Undo, Redo,
   Plus, Minus, Check, Brush, Eraser, PenTool, Square, Circle,
   Sliders, Info, Sun, Moon, Wand2, Scan, Target, Crosshair, Zap
@@ -11,8 +11,8 @@ import {
 
 import { useImageProcessor } from './components/ImageProcessor';
 import { useToast } from '../invoicemaker/client/hooks/useToast';
-import TextDetectionPanel from './components/TextDetectionPanel';
-import ColorPalettePanel from './components/ColorPalettePanel';
+import TextDetectionPanel from './components/TextDetectionPanelComp';
+import ColorPalettePanel from './components/ColorPalettePanelComp';
 import ObjectDetectionPanel from './components/ObjectDetectionPanel';
 
 export default function AIImageEditor() {
@@ -48,7 +48,7 @@ export default function AIImageEditor() {
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [theme, setTheme] = useState('dark');
-  
+
   // Selection state
   const [selection, setSelection] = useState({
     active: false,
@@ -56,14 +56,14 @@ export default function AIImageEditor() {
     mode: 'add',
     bounds: null
   });
-  
+
   const [refinementMode, setRefinementMode] = useState('magic');
   const [brushSettings, setBrushSettings] = useState({
     size: 20,
     hardness: 80,
     opacity: 100
   });
-  
+
   // Magic Grab settings
   const [magicGrabSettings, setMagicGrabSettings] = useState({
     tolerance: 32,
@@ -72,7 +72,7 @@ export default function AIImageEditor() {
     feather: 2,
     minArea: 100
   });
-  
+
   // Detected Objects State
   const [detectedObjects, setDetectedObjects] = useState([]);
   const [detectedText, setDetectedText] = useState([]);
@@ -84,13 +84,13 @@ export default function AIImageEditor() {
   const [colorPalette, setColorPalette] = useState([]);
   const [vectorizedSvg, setVectorizedSvg] = useState(null);
   const [isVectorizing, setIsVectorizing] = useState(false);
-  
+
   const [showSelectionPreview, setShowSelectionPreview] = useState(true);
   const [isDrawingPath, setIsDrawingPath] = useState(false);
   const [currentPath, setCurrentPath] = useState([]);
   const [rectangleStart, setRectangleStart] = useState(null);
   const [cursorPosition, setCursorPosition] = useState(null);
-  
+
   // Transform state
   const [transforming, setTransforming] = useState({
     active: false,
@@ -100,23 +100,23 @@ export default function AIImageEditor() {
     startY: 0,
     originalLayer: null
   });
-  
+
   // Processing state
   const [processing, setProcessing] = useState({
     active: false,
     status: ''
   });
-  
+
   // History
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [selectionHistory, setSelectionHistory] = useState([]);
   const [selectionHistoryIndex, setSelectionHistoryIndex] = useState(-1);
-  
+
   // Canvas dimensions
   const maxCanvasWidth = 1200;
   const maxCanvasHeight = 800;
-  
+
   // --- REFS ---
   const fileInputRef = useRef(null);
   const mainCanvasRef = useRef(null);
@@ -126,9 +126,9 @@ export default function AIImageEditor() {
   const edgeMapCanvasRef = useRef(null);
   const objectHighlightCanvasRef = useRef(null);
   const containerRef = useRef(null);
-  
+
   // --- HELPER FUNCTIONS (Define these FIRST) ---
-  
+
 
   const saveSelectionToHistory = useCallback((mask) => {
     const newHistory = selectionHistory.slice(0, selectionHistoryIndex + 1);
@@ -179,23 +179,23 @@ export default function AIImageEditor() {
       }
       return;
     }
-    
+
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     detectedObjects.forEach((obj, index) => {
       const { box, rle } = obj;
       const [x1, y1, x2, y2] = box;
       const isHovered = obj.id === hoveredObjectId;
-      
-      ctx.strokeStyle = isHovered 
-        ? 'rgba(139, 92, 246, 0.9)' 
+
+      ctx.strokeStyle = isHovered
+        ? 'rgba(139, 92, 246, 0.9)'
         : `hsla(${(index * 137.5) % 360}, 70%, 60%, 0.7)`;
       ctx.lineWidth = isHovered ? 3 : 2;
       ctx.setLineDash(isHovered ? [10, 5] : [8, 4]);
       ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
       ctx.setLineDash([]);
-      
+
       if (isHovered) {
         ctx.fillStyle = 'rgba(139, 92, 246, 0.15)';
         ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
@@ -220,16 +220,16 @@ export default function AIImageEditor() {
   // --- GET OBJECT AT POSITION ---
   const getObjectAtPosition = useCallback((x, y) => {
     if (!detectedObjects.length) return null;
-    
+
     for (let i = detectedObjects.length - 1; i >= 0; i--) {
       const obj = detectedObjects[i];
       const { minX, minY, maxX, maxY } = obj.bounds;
-      
+
       if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
         return obj;
       }
     }
-    
+
     return null;
   }, [detectedObjects]);
 
@@ -238,23 +238,23 @@ export default function AIImageEditor() {
     if (!selection.mask) {
       return;
     }
-    
+
     const clickedObject = getObjectAtPosition(x, y);
-    
+
     // If an object is clicked, use its center for a more accurate grab
     const targetX = clickedObject ? clickedObject.bounds.minX + (clickedObject.bounds.maxX - clickedObject.bounds.minX) / 2 : x;
     const targetY = clickedObject ? clickedObject.bounds.minY + (clickedObject.bounds.maxY - clickedObject.bounds.minY) / 2 : y;
 
     setProcessing({ active: true, status: '🤖 AI is detecting object...' });
-    
+
     try {
       const sourceCanvas = sourceCanvasRef.current;
       if (!sourceCanvas) {
         throw new Error('No source canvas found');
       }
-      
+
       const imageBase64 = sourceCanvas.toDataURL('image/png');
-      
+
       const response = await fetch('/api/sam-segment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -264,13 +264,13 @@ export default function AIImageEditor() {
           box: clickedObject ? [clickedObject.bounds.minX, clickedObject.bounds.minY, clickedObject.bounds.maxX, clickedObject.bounds.maxY] : [targetX, targetY, targetX, targetY]
         })
       });
-      
+
       const result = await response.json();
-      
+
       if (!result.success) {
         throw new Error(result.error || 'API failed');
       }
-      
+
       if (result.mask) {
         const decodedMask = decodeRle(result.mask);
         const newMask = new Uint8ClampedArray(decodedMask.length);
@@ -286,39 +286,39 @@ export default function AIImageEditor() {
             finalMask[i] = Math.max(0, finalMask[i] - newMask[i]);
           }
         }
-        
+
         setSelection(prev => ({
           ...prev,
           mask: finalMask,
           bounds: calculateSelectionBounds(finalMask, sourceCanvas.width, sourceCanvas.height)
         }));
-        
+
         saveSelectionToHistory(finalMask);
       } else {
         throw new Error('No mask returned from AI');
       }
     } catch (error) {
       setProcessing({ active: true, status: 'Using local detection...' });
-      
+
       // Fallback to original magic grab method
       try {
         const sourceCanvas = sourceCanvasRef.current;
         if (!sourceCanvas) return;
-        
+
         const sourceCtx = sourceCanvas.getContext('2d');
         const imageData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
-        
+
         const edgeCanvas = edgeMapCanvasRef.current;
         if (!edgeCanvas) return;
-        
+
         const edgeCtx = edgeCanvas.getContext('2d');
         const edgeImageData = edgeCtx.getImageData(0, 0, edgeCanvas.width, edgeCanvas.height);
         const edgeMap = new Float32Array(edgeCanvas.width * edgeCanvas.height);
-        
+
         for (let i = 0; i < edgeMap.length; i++) {
           edgeMap[i] = edgeImageData.data[i * 4];
         }
-        
+
         const { mask: detectedMask } = improvedFloodFill(
           Math.floor(x), // Fallback should still use original click
           Math.floor(y),
@@ -326,11 +326,11 @@ export default function AIImageEditor() {
           { edgeMap },
           magicGrabSettings
         );
-        
+
         let processedMask = detectedMask;
         processedMask = erode(processedMask, sourceCanvas.width, sourceCanvas.height, 1);
         processedMask = dilate(processedMask, sourceCanvas.width, sourceCanvas.height, 2);
-        
+
         if (magicGrabSettings.feather > 0) {
           processedMask = gaussianBlur(
             processedMask,
@@ -339,7 +339,7 @@ export default function AIImageEditor() {
             magicGrabSettings.feather
           );
         }
-        
+
         const newMask = new Uint8ClampedArray(selection.mask);
         for (let i = 0; i < newMask.length; i++) {
           if (selection.mode === 'add') {
@@ -348,22 +348,22 @@ export default function AIImageEditor() {
             newMask[i] = Math.max(0, newMask[i] - processedMask[i]);
           }
         }
-        
+
         setSelection(prev => ({
           ...prev,
           mask: newMask,
           bounds: calculateSelectionBounds(newMask, sourceCanvas.width, sourceCanvas.height)
         }));
-        
+
         saveSelectionToHistory(newMask);
-        
+
       } catch (fallbackError) {
       }
     } finally {
       setProcessing({ active: false, status: '' });
     }
   }, [
-    selection.mask, 
+    selection.mask,
     selection.mode,
     getObjectAtPosition,
     magicGrabSettings,
@@ -380,43 +380,43 @@ export default function AIImageEditor() {
   }, [layers, selectedLayerId]);
 
   const isPointInLayer = (x, y, layer) => {
-    return x >= layer.x && 
-           x <= layer.x + layer.width && 
-           y >= layer.y && 
-           y <= layer.y + layer.height;
+    return x >= layer.x &&
+      x <= layer.x + layer.width &&
+      y >= layer.y &&
+      y <= layer.y + layer.height;
   };
 
   const getTransformHandles = (layer) => {
     const handleSize = 8;
     return {
-      topLeft: { x: layer.x - handleSize/2, y: layer.y - handleSize/2, cursor: 'nw-resize' },
-      topRight: { x: layer.x + layer.width - handleSize/2, y: layer.y - handleSize/2, cursor: 'ne-resize' },
-      bottomLeft: { x: layer.x - handleSize/2, y: layer.y + layer.height - handleSize/2, cursor: 'sw-resize' },
-      bottomRight: { x: layer.x + layer.width - handleSize/2, y: layer.y + layer.height - handleSize/2, cursor: 'se-resize' },
-      top: { x: layer.x + layer.width/2 - handleSize/2, y: layer.y - handleSize/2, cursor: 'n-resize' },
-      bottom: { x: layer.x + layer.width/2 - handleSize/2, y: layer.y + layer.height - handleSize/2, cursor: 's-resize' },
-      left: { x: layer.x - handleSize/2, y: layer.y + layer.height/2 - handleSize/2, cursor: 'w-resize' },
-      right: { x: layer.x + layer.width - handleSize/2, y: layer.y + layer.height/2 - handleSize/2, cursor: 'e-resize' },
-      rotate: { x: layer.x + layer.width/2 - handleSize/2, y: layer.y - 30, cursor: 'grab' }
+      topLeft: { x: layer.x - handleSize / 2, y: layer.y - handleSize / 2, cursor: 'nw-resize' },
+      topRight: { x: layer.x + layer.width - handleSize / 2, y: layer.y - handleSize / 2, cursor: 'ne-resize' },
+      bottomLeft: { x: layer.x - handleSize / 2, y: layer.y + layer.height - handleSize / 2, cursor: 'sw-resize' },
+      bottomRight: { x: layer.x + layer.width - handleSize / 2, y: layer.y + layer.height - handleSize / 2, cursor: 'se-resize' },
+      top: { x: layer.x + layer.width / 2 - handleSize / 2, y: layer.y - handleSize / 2, cursor: 'n-resize' },
+      bottom: { x: layer.x + layer.width / 2 - handleSize / 2, y: layer.y + layer.height - handleSize / 2, cursor: 's-resize' },
+      left: { x: layer.x - handleSize / 2, y: layer.y + layer.height / 2 - handleSize / 2, cursor: 'w-resize' },
+      right: { x: layer.x + layer.width - handleSize / 2, y: layer.y + layer.height / 2 - handleSize / 2, cursor: 'e-resize' },
+      rotate: { x: layer.x + layer.width / 2 - handleSize / 2, y: layer.y - 30, cursor: 'grab' }
     };
   };
 
   const isPointInHandle = (x, y, handle, size = 8) => {
-    return x >= handle.x && x <= handle.x + size && 
-           y >= handle.y && y <= handle.y + size;
+    return x >= handle.x && x <= handle.x + size &&
+      y >= handle.y && y <= handle.y + size;
   };
 
   // --- SELECTION DRAWING ---
   const drawSelection = useCallback(() => {
     const canvas = selectionCanvasRef.current;
     if (!canvas || !selection.mask) return;
-    
+
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     const imageData = ctx.createImageData(canvas.width, canvas.height);
     const mask = selection.mask;
-    
+
     for (let i = 0; i < mask.length; i++) {
       const value = mask[i];
       imageData.data[i * 4] = 0;
@@ -424,9 +424,9 @@ export default function AIImageEditor() {
       imageData.data[i * 4 + 2] = 255;
       imageData.data[i * 4 + 3] = value * 0.5;
     }
-    
+
     ctx.putImageData(imageData, 0, 0);
-    
+
     if (selection.bounds) {
       ctx.setLineDash([5, 5]);
       ctx.lineDashOffset = -Date.now() / 50;
@@ -440,12 +440,12 @@ export default function AIImageEditor() {
       );
       ctx.setLineDash([]);
     }
-    
+
     if (isDrawingPath && currentPath.length > 0 && refinementMode !== 'magic') {
       ctx.strokeStyle = refinementMode === 'eraser' ? 'rgba(255, 140, 0, 0.8)' : 'rgba(0, 200, 255, 0.8)';
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 5]);
-      
+
       if (refinementMode === 'lasso') {
         ctx.beginPath();
         ctx.moveTo(currentPath[0].x, currentPath[0].y);
@@ -464,22 +464,22 @@ export default function AIImageEditor() {
         const centerY = (rectangleStart.y + current.y) / 2;
         const radiusX = Math.abs(current.x - rectangleStart.x) / 2;
         const radiusY = Math.abs(current.y - rectangleStart.y) / 2;
-        
+
         ctx.beginPath();
         ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
         ctx.stroke();
       }
-      
+
       ctx.setLineDash([]);
     }
-    
+
     if (cursorPosition && (refinementMode === 'brush' || refinementMode === 'eraser')) {
       ctx.beginPath();
       ctx.arc(cursorPosition.x, cursorPosition.y, brushSettings.size / 2, 0, 2 * Math.PI);
       ctx.strokeStyle = refinementMode === 'eraser' ? 'rgba(255, 140, 0, 0.8)' : 'rgba(0, 200, 255, 0.8)';
       ctx.lineWidth = 2;
       ctx.stroke();
-      
+
       if (brushSettings.hardness > 0) {
         ctx.beginPath();
         const innerRadius = (brushSettings.size / 2) * (brushSettings.hardness / 100);
@@ -488,24 +488,24 @@ export default function AIImageEditor() {
         ctx.lineWidth = 1;
         ctx.stroke();
       }
-      
+
       ctx.beginPath();
       ctx.arc(cursorPosition.x, cursorPosition.y, 2, 0, 2 * Math.PI);
       ctx.fillStyle = refinementMode === 'eraser' ? 'rgba(255, 140, 0, 1)' : 'rgba(0, 200, 255, 1)';
       ctx.fill();
     }
-    
+
     if (cursorPosition && refinementMode === 'magic') {
       ctx.save();
       ctx.strokeStyle = 'rgba(255, 215, 0, 0.9)';
       ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
       ctx.lineWidth = 2;
-      
+
       ctx.beginPath();
       ctx.arc(cursorPosition.x, cursorPosition.y, 15, 0, 2 * Math.PI);
       ctx.fill();
       ctx.stroke();
-      
+
       const sparkles = [
         [10, -10], [-10, 10], [12, 0], [-12, 0], [0, 12], [0, -12]
       ];
@@ -515,7 +515,7 @@ export default function AIImageEditor() {
         ctx.arc(cursorPosition.x + dx, cursorPosition.y + dy, 2, 0, 2 * Math.PI);
         ctx.fill();
       });
-      
+
       ctx.restore();
     }
   }, [selection, isDrawingPath, currentPath, rectangleStart, refinementMode, cursorPosition, brushSettings]);
@@ -527,30 +527,30 @@ export default function AIImageEditor() {
   }, [selection, drawSelection, cursorPosition, brushSettings]);
 
   // Continue to Part 4...
-    // ... continuing from Part 3
+  // ... continuing from Part 3
 
   // --- CANVAS CURSOR ---
-   // --- CANVAS CURSOR ---
+  // --- CANVAS CURSOR ---
   const canvasCursor = () => {
     if (!uploadedImage) return 'default';
-    
+
     // Show processing cursor when AI is working
     if (processing.active) return 'wait';
-    
+
     if (activeTool === 'move') {
       if (transforming.active) {
         if (transforming.type === 'move') return 'grabbing';
         if (transforming.type === 'rotate') return 'grabbing';
         if (transforming.handle) return transforming.handle.cursor;
       }
-      
+
       const layer = getSelectedLayer();
       if (layer && !layer.locked) {
         return 'grab';
       }
       return 'move';
     }
-    
+
     if (activeTool === 'select' && selection.active) {
       if (refinementMode === 'brush' || refinementMode === 'eraser' || refinementMode === 'magic') {
         return 'none';
@@ -567,40 +567,40 @@ export default function AIImageEditor() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
         setUploadedImage(img);
-        
+
         const aspectRatio = img.width / img.height;
         let canvasWidth = maxCanvasWidth;
         let canvasHeight = maxCanvasHeight;
-        
+
         if (aspectRatio > maxCanvasWidth / maxCanvasHeight) {
           canvasHeight = maxCanvasWidth / aspectRatio;
         } else {
           canvasWidth = maxCanvasHeight * aspectRatio;
         }
-        
+
         const sourceCanvas = sourceCanvasRef.current;
         if (sourceCanvas) {
           sourceCanvas.width = canvasWidth;
           sourceCanvas.height = canvasHeight;
           const sourceCtx = sourceCanvas.getContext('2d');
           sourceCtx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
-          
+
           const imageData = sourceCtx.getImageData(0, 0, canvasWidth, canvasHeight);
           const { edgeMap } = computeEdgeMap(imageData);
-          
+
           const edgeCanvas = edgeMapCanvasRef.current;
           if (edgeCanvas) {
             edgeCanvas.width = canvasWidth;
             edgeCanvas.height = canvasHeight;
             const edgeCtx = edgeCanvas.getContext('2d');
             const edgeImageData = edgeCtx.createImageData(canvasWidth, canvasHeight);
-            
+
             for (let i = 0; i < edgeMap.length; i++) {
               const value = Math.min(255, edgeMap[i]);
               edgeImageData.data[i * 4] = value;
@@ -610,13 +610,13 @@ export default function AIImageEditor() {
             }
             edgeCtx.putImageData(edgeImageData, 0, 0);
           }
-          
+
           const highlightCanvas = objectHighlightCanvasRef.current;
           if (highlightCanvas) {
             highlightCanvas.width = canvasWidth;
             highlightCanvas.height = canvasHeight;
           }
-          
+
           const newLayer = {
             id: Date.now(),
             name: 'Background',
@@ -631,7 +631,7 @@ export default function AIImageEditor() {
             locked: false,
             isBackground: true
           };
-          
+
           setLayers([newLayer]);
           setSelectedLayerId(newLayer.id);
           renderCanvas([newLayer]);
@@ -648,10 +648,10 @@ export default function AIImageEditor() {
   const renderCanvas = useCallback((layersList = layers) => {
     const canvas = mainCanvasRef.current;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     const gridSize = 20;
     for (let y = 0; y < canvas.height; y += gridSize) {
       for (let x = 0; x < canvas.width; x += gridSize) {
@@ -659,13 +659,13 @@ export default function AIImageEditor() {
         ctx.fillRect(x, y, gridSize, gridSize);
       }
     }
-    
+
     layersList.forEach(layer => {
       if (!layer.visible) return;
-      
+
       const img = new Image();
       img.src = layer.src;
-      
+
       ctx.save();
       ctx.globalAlpha = layer.opacity / 100;
       ctx.translate(layer.x + layer.width / 2, layer.y + layer.height / 2);
@@ -673,7 +673,7 @@ export default function AIImageEditor() {
       ctx.drawImage(img, -layer.width / 2, -layer.height / 2, layer.width, layer.height);
       ctx.restore();
     });
-    
+
     if (activeTool === 'move' && selectedLayerId) {
       const selectedLayer = layersList.find(l => l.id === selectedLayerId);
       if (selectedLayer && !selectedLayer.locked) {
@@ -685,29 +685,29 @@ export default function AIImageEditor() {
   const drawTransformHandles = (ctx, layer) => {
     const handleSize = 8;
     const handles = getTransformHandles(layer);
-    
+
     ctx.save();
     ctx.strokeStyle = '#00c8ff';
     ctx.lineWidth = 2;
     ctx.setLineDash([5, 5]);
     ctx.strokeRect(layer.x, layer.y, layer.width, layer.height);
     ctx.setLineDash([]);
-    
+
     ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = '#00c8ff';
     ctx.lineWidth = 2;
-    
+
     Object.entries(handles).forEach(([key, handle]) => {
       if (key === 'rotate') {
         ctx.beginPath();
-        ctx.arc(handle.x + handleSize/2, handle.y + handleSize/2, 6, 0, 2 * Math.PI);
+        ctx.arc(handle.x + handleSize / 2, handle.y + handleSize / 2, 6, 0, 2 * Math.PI);
         ctx.fillStyle = '#ff6b6b';
         ctx.fill();
         ctx.stroke();
-        
+
         ctx.beginPath();
-        ctx.moveTo(layer.x + layer.width/2, layer.y);
-        ctx.lineTo(handle.x + handleSize/2, handle.y + handleSize/2);
+        ctx.moveTo(layer.x + layer.width / 2, layer.y);
+        ctx.lineTo(handle.x + handleSize / 2, handle.y + handleSize / 2);
         ctx.strokeStyle = '#00c8ff';
         ctx.setLineDash([3, 3]);
         ctx.stroke();
@@ -718,7 +718,7 @@ export default function AIImageEditor() {
         ctx.strokeRect(handle.x, handle.y, handleSize, handleSize);
       }
     });
-    
+
     ctx.restore();
   };
 
@@ -730,28 +730,28 @@ export default function AIImageEditor() {
   const getCanvasCoordinates = (e) => {
     const canvas = mainCanvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
-    
+
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    
+
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
-    
+
     return { x, y };
   };
 
   const handleCanvasMouseDown = (e) => {
     if (!uploadedImage) return;
-    
+
     const coords = getCanvasCoordinates(e);
-    
+
     if (activeTool === 'move' && selectedLayerId) {
       const layer = getSelectedLayer();
       if (!layer || layer.locked) return;
-      
+
       const handles = getTransformHandles(layer);
-      
+
       if (isPointInHandle(coords.x, coords.y, handles.rotate, 12)) {
         setTransforming({
           active: true,
@@ -765,7 +765,7 @@ export default function AIImageEditor() {
         });
         return;
       }
-      
+
       for (const [key, handle] of Object.entries(handles)) {
         if (key !== 'rotate' && isPointInHandle(coords.x, coords.y, handle, 8)) {
           setTransforming({
@@ -779,7 +779,7 @@ export default function AIImageEditor() {
           return;
         }
       }
-      
+
       if (isPointInLayer(coords.x, coords.y, layer)) {
         setTransforming({
           active: true,
@@ -792,7 +792,7 @@ export default function AIImageEditor() {
         return;
       }
     }
-    
+
     if (activeTool === 'select' && selection.active) {
       if (refinementMode === 'magic') {
         handleMagicGrabClick(coords.x, coords.y);
@@ -812,25 +812,25 @@ export default function AIImageEditor() {
 
   const handleCanvasMouseMove = (e) => {
     if (!uploadedImage) return;
-    
+
     const coords = getCanvasCoordinates(e);
-    
+
     if (activeTool === 'select' && selection.active) {
       setCursorPosition(coords);
-      
+
       if (refinementMode === 'magic' && showObjectHighlights) {
         const hoveredObj = getObjectAtPosition(coords.x, coords.y);
         setHoveredObjectId(hoveredObj ? hoveredObj.id : null);
       }
     }
-    
+
     if (transforming.active && activeTool === 'move') {
       const layer = getSelectedLayer();
       if (!layer) return;
-      
+
       const dx = coords.x - transforming.startX;
       const dy = coords.y - transforming.startY;
-      
+
       if (transforming.type === 'move') {
         updateLayer(layer.id, {
           x: transforming.originalLayer.x + dx,
@@ -842,7 +842,7 @@ export default function AIImageEditor() {
         handleRotate(layer, coords, transforming);
       }
     }
-    
+
     if (activeTool === 'select' && selection.active && isDrawingPath && refinementMode !== 'magic') {
       if (refinementMode === 'brush' || refinementMode === 'eraser') {
         applyBrushStroke(coords.x, coords.y);
@@ -863,12 +863,12 @@ export default function AIImageEditor() {
       } else if (refinementMode === 'ellipse' && rectangleStart && currentPath.length > 0) {
         applyPathToSelection([rectangleStart, currentPath[0]], 'ellipse');
       }
-      
+
       setIsDrawingPath(false);
       setCurrentPath([]);
       setRectangleStart(null);
     }
-    
+
     if (transforming.active) {
       const layer = getSelectedLayer();
       if (layer) {
@@ -885,19 +885,19 @@ export default function AIImageEditor() {
   };
 
   // Continue to Part 5...
-    // ... continuing from Part 4
+  // ... continuing from Part 4
 
   // --- TRANSFORM HELPERS ---
   const handleResize = (layer, coords, transform) => {
     const { originalLayer, handle, startX, startY } = transform;
     const dx = coords.x - startX;
     const dy = coords.y - startY;
-    
+
     let newX = originalLayer.x;
     let newY = originalLayer.y;
     let newWidth = originalLayer.width;
     let newHeight = originalLayer.height;
-    
+
     switch (handle.name) {
       case 'topLeft':
         newX = originalLayer.x + dx;
@@ -934,7 +934,7 @@ export default function AIImageEditor() {
         newWidth = originalLayer.width + dx;
         break;
     }
-    
+
     if (newWidth > 10 && newHeight > 10) {
       updateLayer(layer.id, {
         x: newX,
@@ -955,42 +955,42 @@ export default function AIImageEditor() {
   // --- BRUSH STROKE APPLICATION ---
   const applyBrushStroke = (x, y) => {
     if (!selection.mask) return;
-    
+
     const canvas = sourceCanvasRef.current;
     if (!canvas) return;
-    
+
     const newMask = new Uint8ClampedArray(selection.mask);
     const radius = brushSettings.size / 2;
     const hardness = brushSettings.hardness / 100;
     const opacity = brushSettings.opacity / 100;
-    
+
     const isEraser = refinementMode === 'eraser';
     const edgeMap = getEdgeMapData();
-    
+
     for (let dy = -radius; dy <= radius; dy++) {
       for (let dx = -radius; dx <= radius; dx++) {
         const distance = Math.sqrt(dx * dx + dy * dy);
         if (distance > radius) continue;
-        
+
         const px = Math.round(x + dx);
         const py = Math.round(y + dy);
-        
+
         if (px < 0 || px >= canvas.width || py < 0 || py >= canvas.height) continue;
-        
+
         const idx = py * canvas.width + px;
         let strength = 1 - (distance / radius);
-        
+
         if (hardness > 0) {
           strength = Math.pow(strength, 1 / hardness);
         }
-        
+
         strength *= opacity;
-        
+
         if (isEraser) {
           const edgeStrength = edgeMap ? edgeMap[idx] / 255 : 0;
           const snapFactor = hardness;
           const repelStrength = strength * (1 + edgeStrength * snapFactor);
-          
+
           if (selection.mode === 'add') {
             newMask[idx] = Math.max(0, newMask[idx] - repelStrength * 255);
           } else {
@@ -1005,45 +1005,45 @@ export default function AIImageEditor() {
         }
       }
     }
-    
+
     setSelection(prev => ({
       ...prev,
       mask: newMask,
       bounds: calculateSelectionBounds(newMask, canvas.width, canvas.height)
     }));
-    
+
     saveSelectionToHistory(newMask);
   };
 
   const getEdgeMapData = () => {
     const edgeCanvas = edgeMapCanvasRef.current;
     if (!edgeCanvas) return null;
-    
+
     const ctx = edgeCanvas.getContext('2d');
     const imageData = ctx.getImageData(0, 0, edgeCanvas.width, edgeCanvas.height);
     const edgeMap = new Float32Array(edgeCanvas.width * edgeCanvas.height);
-    
+
     for (let i = 0; i < edgeMap.length; i++) {
       edgeMap[i] = imageData.data[i * 4];
     }
-    
+
     return edgeMap;
   };
 
   const applyPathToSelection = (path, type) => {
     if (!selection.mask || path.length === 0) return;
-    
+
     const canvas = sourceCanvasRef.current;
     if (!canvas) return;
-    
+
     const newMask = new Uint8ClampedArray(selection.mask);
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
     const ctx = tempCanvas.getContext('2d');
-    
+
     ctx.beginPath();
-    
+
     if (type === 'lasso') {
       ctx.moveTo(path[0].x, path[0].y);
       for (let i = 1; i < path.length; i++) {
@@ -1063,12 +1063,12 @@ export default function AIImageEditor() {
       const radiusY = Math.abs(path[1].y - path[0].y) / 2;
       ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
     }
-    
+
     ctx.fillStyle = 'white';
     ctx.fill();
-    
+
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    
+
     for (let i = 0; i < newMask.length; i++) {
       const isInside = imageData.data[i * 4] > 128;
       if (selection.mode === 'add') {
@@ -1077,13 +1077,13 @@ export default function AIImageEditor() {
         if (isInside) newMask[i] = 0;
       }
     }
-    
+
     setSelection(prev => ({
       ...prev,
       mask: newMask,
       bounds: calculateSelectionBounds(newMask, canvas.width, canvas.height)
     }));
-    
+
     saveSelectionToHistory(newMask);
   };
 
@@ -1165,32 +1165,32 @@ export default function AIImageEditor() {
     setProcessing({ active: true, status: 'Vectorizing image...' });
 
     try {
-        const imageBase64 = sourceCanvas.toDataURL('image/png');
+      const imageBase64 = sourceCanvas.toDataURL('image/png');
 
-        const response = await fetch('/api/vectorize', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                image: imageBase64,
-            })
-        });
+      const response = await fetch('/api/vectorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: imageBase64,
+        })
+      });
 
-        const result = await response.json();
+      const result = await response.json();
 
-        if (response.ok) {
-            setVectorizedSvg(result.svg);
-        } else {
-            throw new Error(result.error || 'API failed');
-        }
+      if (response.ok) {
+        setVectorizedSvg(result.svg);
+      } else {
+        throw new Error(result.error || 'API failed');
+      }
 
     } catch (error) {
-        toast({
-            title: "Error Vectorizing Image",
-            description: error.message || "Could not vectorize the image. Please try again.",
-        });
+      toast({
+        title: "Error Vectorizing Image",
+        description: error.message || "Could not vectorize the image. Please try again.",
+      });
     } finally {
-        setIsVectorizing(false);
-        setProcessing({ active: false, status: '' });
+      setIsVectorizing(false);
+      setProcessing({ active: false, status: '' });
     }
   };
 
@@ -1199,16 +1199,16 @@ export default function AIImageEditor() {
   const startSelection = () => {
     const canvas = sourceCanvasRef.current;
     if (!canvas) return;
-    
+
     const mask = new Uint8ClampedArray(canvas.width * canvas.height);
-    
+
     setSelection({
       active: true,
       mask: mask,
       mode: 'add',
       bounds: null
     });
-    
+
     setSelectionHistory([mask]);
     setSelectionHistoryIndex(0);
     setActiveTool('select');
@@ -1223,47 +1223,47 @@ export default function AIImageEditor() {
 
   const extractFromSelection = async () => {
     if (!selection.mask || !selection.bounds) return;
-    
+
     setProcessing({ active: true, status: 'Extracting object...' });
-    
+
     await new Promise(resolve => setTimeout(resolve, 100));
-    
+
     const sourceCanvas = sourceCanvasRef.current;
     if (!sourceCanvas) {
       setProcessing({ active: false, status: '' });
       return;
     }
-    
+
     const sourceCtx = sourceCanvas.getContext('2d');
     const { minX, minY, maxX, maxY } = selection.bounds;
-    
+
     const width = maxX - minX;
     const height = maxY - minY;
-    
+
     const extractCanvas = document.createElement('canvas');
     extractCanvas.width = width;
     extractCanvas.height = height;
     const extractCtx = extractCanvas.getContext('2d');
-    
+
     const sourceImageData = sourceCtx.getImageData(minX, minY, width, height);
     const extractImageData = extractCtx.createImageData(width, height);
-    
+
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const sourceIdx = ((minY + y) * sourceCanvas.width + (minX + x));
         const maskValue = selection.mask[sourceIdx];
         const targetIdx = (y * width + x) * 4;
         const sourcePixelIdx = targetIdx;
-        
+
         extractImageData.data[targetIdx] = sourceImageData.data[sourcePixelIdx];
         extractImageData.data[targetIdx + 1] = sourceImageData.data[sourcePixelIdx + 1];
         extractImageData.data[targetIdx + 2] = sourceImageData.data[sourcePixelIdx + 2];
         extractImageData.data[targetIdx + 3] = maskValue;
       }
     }
-    
+
     extractCtx.putImageData(extractImageData, 0, 0);
-    
+
     const newLayer = {
       id: Date.now(),
       name: `Extracted Object ${layers.length}`,
@@ -1278,12 +1278,12 @@ export default function AIImageEditor() {
       locked: false,
       isBackground: false
     };
-    
+
     const newLayers = [...layers, newLayer];
     setLayers(newLayers);
     setSelectedLayerId(newLayer.id);
     saveToHistory(newLayers);
-    
+
     cancelSelection();
     setProcessing({ active: false, status: '' });
     setActiveTool('move');
@@ -1295,7 +1295,7 @@ export default function AIImageEditor() {
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-    
+
     setSelection({
       active: false,
       mask: null,
@@ -1313,7 +1313,7 @@ export default function AIImageEditor() {
 
   // --- LAYER MANAGEMENT ---
   const updateLayer = (id, updates) => {
-    const newLayers = layers.map(layer => 
+    const newLayers = layers.map(layer =>
       layer.id === id ? { ...layer, ...updates } : layer
     );
     setLayers(newLayers);
@@ -1334,7 +1334,7 @@ export default function AIImageEditor() {
   const duplicateLayer = (id) => {
     const layer = layers.find(l => l.id === id);
     if (!layer) return;
-    
+
     const newLayer = {
       ...layer,
       id: Date.now(),
@@ -1342,7 +1342,7 @@ export default function AIImageEditor() {
       x: layer.x + 20,
       y: layer.y + 20
     };
-    
+
     const newLayers = [...layers, newLayer];
     setLayers(newLayers);
     setSelectedLayerId(newLayer.id);
@@ -1352,14 +1352,14 @@ export default function AIImageEditor() {
   const moveLayer = (id, direction) => {
     const index = layers.findIndex(l => l.id === id);
     if (index === -1) return;
-    
+
     const newLayers = [...layers];
     if (direction === 'up' && index > 0) {
       [newLayers[index], newLayers[index - 1]] = [newLayers[index - 1], newLayers[index]];
     } else if (direction === 'down' && index < layers.length - 1) {
       [newLayers[index], newLayers[index + 1]] = [newLayers[index + 1], newLayers[index]];
     }
-    
+
     setLayers(newLayers);
     saveToHistory(newLayers);
   };
@@ -1377,7 +1377,7 @@ export default function AIImageEditor() {
   const handleExport = () => {
     const canvas = mainCanvasRef.current;
     if (!canvas) return;
-    
+
     const link = document.createElement('a');
     link.download = 'ai-edited-image.png';
     link.href = canvas.toDataURL();
@@ -1411,7 +1411,7 @@ export default function AIImageEditor() {
           setShowObjectHighlights(prev => !prev);
         }
       }
-      
+
       if (e.key === 'Delete' && selectedLayerId && activeTool === 'move') {
         const layer = getSelectedLayer();
         if (layer && !layer.isBackground && !layer.locked) {
@@ -1419,7 +1419,7 @@ export default function AIImageEditor() {
         }
       }
     };
-    
+
     const handleKeyUp = (e) => {
       if (selection.active) {
         if (e.key === 'Shift' && selection.mode === 'add') {
@@ -1429,10 +1429,10 @@ export default function AIImageEditor() {
         }
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
@@ -1442,48 +1442,48 @@ export default function AIImageEditor() {
   // --- PREVIEW UPDATE ---
   useEffect(() => {
     if (!showSelectionPreview || !selection.mask || !selection.bounds) return;
-    
+
     const previewCanvas = previewCanvasRef.current;
     if (!previewCanvas) return;
-    
+
     const { minX, minY, maxX, maxY } = selection.bounds;
     const width = maxX - minX;
     const height = maxY - minY;
-    
+
     const previewSize = 200;
     const scale = Math.min(previewSize / width, previewSize / height);
-    
+
     previewCanvas.width = width * scale;
     previewCanvas.height = height * scale;
-    
+
     const ctx = previewCanvas.getContext('2d');
     const sourceCanvas = sourceCanvasRef.current;
     if (!sourceCanvas) return;
-    
+
     const sourceCtx = sourceCanvas.getContext('2d');
-    
+
     const sourceImageData = sourceCtx.getImageData(minX, minY, width, height);
     const previewImageData = ctx.createImageData(width, height);
-    
+
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const sourceIdx = ((minY + y) * sourceCanvas.width + (minX + x));
         const maskValue = selection.mask[sourceIdx];
         const targetIdx = (y * width + x) * 4;
-        
+
         previewImageData.data[targetIdx] = sourceImageData.data[targetIdx];
         previewImageData.data[targetIdx + 1] = sourceImageData.data[targetIdx + 1];
         previewImageData.data[targetIdx + 2] = sourceImageData.data[targetIdx + 2];
         previewImageData.data[targetIdx + 3] = maskValue;
       }
     }
-    
+
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = width;
     tempCanvas.height = height;
     const tempCtx = tempCanvas.getContext('2d');
     tempCtx.putImageData(previewImageData, 0, 0);
-    
+
     ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
     ctx.scale(scale, scale);
     ctx.drawImage(tempCanvas, 0, 0);
@@ -1494,7 +1494,7 @@ export default function AIImageEditor() {
     <div className={`flex flex-col h-screen w-full bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-gray-100 font-sans`}>
       <canvas ref={sourceCanvasRef} className="hidden" />
       <canvas ref={edgeMapCanvasRef} className="hidden" />
-      
+
       {/* HEADER */}
       <header className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex-shrink-0 z-20">
         <div className="flex items-center gap-3">
@@ -1511,16 +1511,16 @@ export default function AIImageEditor() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button 
-            onClick={handleUndo} 
+          <button
+            onClick={handleUndo}
             disabled={(selection.active && selectionHistoryIndex <= 0) || (!selection.active && historyIndex <= 0)}
             className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             title="Undo"
           >
             <Undo size={20} />
           </button>
-          <button 
-            onClick={handleRedo} 
+          <button
+            onClick={handleRedo}
             disabled={(selection.active && selectionHistoryIndex >= selectionHistory.length - 1) || (!selection.active && historyIndex >= history.length - 1)}
             className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             title="Redo"
@@ -1528,17 +1528,17 @@ export default function AIImageEditor() {
             <Redo size={20} />
           </button>
           <div className="w-px h-6 bg-gray-200 dark:bg-slate-600 mx-2" />
-          <button 
-            onClick={handleExport} 
-            disabled={layers.length === 0} 
+          <button
+            onClick={handleExport}
+            disabled={layers.length === 0}
             className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             title="Export Image"
           >
             <Download size={20} />
           </button>
           <div className="w-px h-6 bg-gray-200 dark:bg-slate-600 mx-2" />
-          <button 
-            onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} 
+          <button
+            onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
             className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
             title="Toggle Theme"
           >
@@ -1546,13 +1546,13 @@ export default function AIImageEditor() {
           </button>
         </div>
       </header>
-      
+
       <div className="flex flex-1 overflow-hidden">
         {/* LEFT TOOLBAR */}
         <aside className="w-20 bg-white dark:bg-slate-800 flex-shrink-0 border-r border-gray-200 dark:border-slate-700 flex flex-col items-center py-4 z-20">
           <div className="flex flex-col gap-2">
-            <button 
-              onClick={() => fileInputRef.current.click()} 
+            <button
+              onClick={() => fileInputRef.current.click()}
               className="flex flex-col items-center justify-center h-16 w-16 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
               title="Upload Image"
             >
@@ -1562,9 +1562,9 @@ export default function AIImageEditor() {
             <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/png, image/jpeg, image/webp" className="hidden" />
             <div className="w-full h-px bg-gray-200 dark:bg-slate-700 my-2" />
             <ToolButton icon={MousePointer} label="Move" tool="move" activeTool={activeTool} onClick={setActiveTool} />
-            <ToolButton icon={Wand2} label="Magic Grab" tool="select" activeTool={activeTool} onClick={setActiveTool} color="purple" isDisabled={!uploadedImage}/>
-            <ToolButton icon={Zap} label="Vectorize" tool="vectorize" activeTool={activeTool} onClick={handleVectorize} color="yellow" isDisabled={!uploadedImage || isVectorizing}/>
-            
+            <ToolButton icon={Wand2} label="Magic Grab" tool="select" activeTool={activeTool} onClick={setActiveTool} color="purple" isDisabled={!uploadedImage} />
+            <ToolButton icon={Zap} label="Vectorize" tool="vectorize" activeTool={activeTool} onClick={handleVectorize} color="yellow" isDisabled={!uploadedImage || isVectorizing} />
+
             {uploadedImage && (
               <>
                 <div className="w-full h-px bg-gray-200 dark:bg-slate-700 my-2" />
@@ -1585,17 +1585,17 @@ export default function AIImageEditor() {
             )}
           </div>
           <div className="mt-auto flex flex-col gap-2">
-            <button 
-              onClick={handleZoomIn} 
-              disabled={!uploadedImage || isDrawingPath} 
+            <button
+              onClick={handleZoomIn}
+              disabled={!uploadedImage || isDrawingPath}
               className="p-3 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               title="Zoom In"
             >
               <ZoomIn size={20} />
             </button>
-            <button 
-              onClick={handleZoomOut} 
-              disabled={!uploadedImage || isDrawingPath} 
+            <button
+              onClick={handleZoomOut}
+              disabled={!uploadedImage || isDrawingPath}
               className="p-3 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               title="Zoom Out"
             >
@@ -1604,13 +1604,13 @@ export default function AIImageEditor() {
             <div className="text-center text-xs text-gray-500 dark:text-gray-400">{Math.round(zoom * 100)}%</div>
           </div>
         </aside>
-        
+
         {/* MAIN CANVAS AREA */}
         <main ref={containerRef} className="flex-1 flex items-center justify-center bg-gray-100 dark:bg-slate-900 overflow-auto relative">
           {uploadedImage ? (
-            <div 
-              className="relative shadow-lg" 
-              style={{ 
+            <div
+              className="relative shadow-lg"
+              style={{
                 cursor: canvasCursor(),
                 transform: `scale(${zoom})`,
                 transformOrigin: 'center center',
@@ -1620,16 +1620,16 @@ export default function AIImageEditor() {
               <canvas ref={mainCanvasRef} width={maxCanvasWidth} height={maxCanvasHeight} />
               <canvas ref={selectionCanvasRef} width={maxCanvasWidth} height={maxCanvasHeight} className="absolute top-0 left-0 pointer-events-none" />
               <canvas ref={objectHighlightCanvasRef} width={maxCanvasWidth} height={maxCanvasHeight} className="absolute top-0 left-0 pointer-events-none" />
-              <div className="absolute top-0 left-0 w-full h-full" 
-                   onMouseDown={handleCanvasMouseDown} 
-                   onMouseMove={handleCanvasMouseMove}
-                   onMouseUp={handleCanvasMouseUp}
-                   onMouseLeave={handleCanvasMouseLeave} />
+              <div className="absolute top-0 left-0 w-full h-full"
+                onMouseDown={handleCanvasMouseDown}
+                onMouseMove={handleCanvasMouseMove}
+                onMouseUp={handleCanvasMouseUp}
+                onMouseLeave={handleCanvasMouseLeave} />
             </div>
-          ) : ( 
-            <EmptyState onClick={() => fileInputRef.current.click()} /> 
+          ) : (
+            <EmptyState onClick={() => fileInputRef.current.click()} />
           )}
-          
+
           {uploadedImage && (
             <ObjectDetectionPanel
               image={uploadedImageSrc}
@@ -1642,7 +1642,7 @@ export default function AIImageEditor() {
 
           <TextDetectionPanel detectedText={detectedText} />
           <ColorPalettePanel palette={colorPalette} />
-          
+
           {/* Analysis Progress */}
           {isAnalyzing && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 rounded-lg shadow-xl p-4 min-w-[300px]">
@@ -1651,7 +1651,7 @@ export default function AIImageEditor() {
                 <span className="text-sm font-semibold">Analyzing Image...</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
-                <div 
+                <div
                   className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${analysisProgress}%` }}
                 />
@@ -1661,9 +1661,9 @@ export default function AIImageEditor() {
               </p>
             </div>
           )}
-          
+
           {selection.active && (
-            <SelectionToolbar 
+            <SelectionToolbar
               processing={processing}
               mode={selection.mode}
               setMode={(mode) => setSelection(prev => ({ ...prev, mode }))}
@@ -1673,7 +1673,7 @@ export default function AIImageEditor() {
               setBrushSettings={setBrushSettings}
               magicGrabSettings={magicGrabSettings}
               setMagicGrabSettings={setMagicGrabSettings}
-              onConfirm={extractFromSelection} 
+              onConfirm={extractFromSelection}
               onCancel={cancelSelection}
               showPreview={showSelectionPreview}
               setShowPreview={setShowSelectionPreview}
@@ -1682,16 +1682,16 @@ export default function AIImageEditor() {
               setShowObjectHighlights={setShowObjectHighlights}
             />
           )}
-          
+
           {showSelectionPreview && selection.active && selection.bounds && (
             <div className="absolute top-4 right-4 bg-slate-800 rounded-lg shadow-xl p-2">
               <div className="text-xs text-gray-400 mb-1">Preview</div>
               <canvas ref={previewCanvasRef} className="rounded" />
             </div>
           )}
-          
+
           {processing.active && <ProcessingOverlay status={processing.status} />}
-                </main>
+        </main>
         {/* RIGHT SIDEBAR - LAYERS PANEL */}
         <aside className={`flex-shrink-0 bg-white dark:bg-slate-800 border-l border-gray-200 dark:border-slate-700 transition-all duration-300 z-20 ${isSidebarOpen ? 'w-80' : 'w-0'} overflow-hidden`}>
           <div className="h-full flex flex-col">
@@ -1707,7 +1707,7 @@ export default function AIImageEditor() {
                 </button>
               </div>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-2">
               {layers.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -1738,7 +1738,7 @@ export default function AIImageEditor() {
                 </div>
               )}
             </div>
-            
+
             {selectedLayerId && (
               <div className="border-t border-gray-200 dark:border-slate-700 p-4">
                 <LayerProperties
@@ -1761,43 +1761,43 @@ export default function AIImageEditor() {
       </div>
       {vectorizedSvg && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 max-w-3xl w-full">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Vectorized SVG</h3>
-                    <button onClick={() => setVectorizedSvg(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full">
-                        <X size={24} />
-                    </button>
-                </div>
-                <div className="bg-gray-100 dark:bg-slate-900 p-4 rounded-lg overflow-auto max-h-[60vh]">
-                    <pre className="text-sm whitespace-pre-wrap">
-                        <code>
-                            {vectorizedSvg}
-                        </code>
-                    </pre>
-                </div>
-                <div className="flex justify-end gap-4 mt-4">
-                    <button
-                        onClick={() => navigator.clipboard.writeText(vectorizedSvg)}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                    >
-                        Copy SVG
-                    </button>
-                    <button
-                        onClick={() => {
-                            const blob = new Blob([vectorizedSvg], { type: 'image/svg+xml' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = 'vectorized-image.svg';
-                            a.click();
-                            URL.revokeObjectURL(url);
-                        }}
-                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                    >
-                        Download SVG
-                    </button>
-                </div>
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 max-w-3xl w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Vectorized SVG</h3>
+              <button onClick={() => setVectorizedSvg(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full">
+                <X size={24} />
+              </button>
             </div>
+            <div className="bg-gray-100 dark:bg-slate-900 p-4 rounded-lg overflow-auto max-h-[60vh]">
+              <pre className="text-sm whitespace-pre-wrap">
+                <code>
+                  {vectorizedSvg}
+                </code>
+              </pre>
+            </div>
+            <div className="flex justify-end gap-4 mt-4">
+              <button
+                onClick={() => navigator.clipboard.writeText(vectorizedSvg)}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              >
+                Copy SVG
+              </button>
+              <button
+                onClick={() => {
+                  const blob = new Blob([vectorizedSvg], { type: 'image/svg+xml' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'vectorized-image.svg';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+              >
+                Download SVG
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -1812,10 +1812,10 @@ const ToolButton = ({ icon: Icon, label, tool, activeTool, onClick, color, isDis
   const colorClass = color === 'purple' ? 'text-purple-500' : '';
   const activeBg = 'bg-cyan-100 dark:bg-cyan-900/50';
   return (
-    <button 
-      onClick={() => !isDisabled && onClick(tool)} 
-      disabled={isDisabled} 
-      className={`flex flex-col items-center justify-center h-16 w-16 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isActive ? activeBg : 'hover:bg-gray-100 dark:hover:bg-slate-700'}`} 
+    <button
+      onClick={() => !isDisabled && onClick(tool)}
+      disabled={isDisabled}
+      className={`flex flex-col items-center justify-center h-16 w-16 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isActive ? activeBg : 'hover:bg-gray-100 dark:hover:bg-slate-700'}`}
       title={label}
     >
       <Icon size={24} className={colorClass} />
@@ -1860,7 +1860,7 @@ const SelectionToolbar = ({
   const [showBrushSettings, setShowBrushSettings] = useState(false);
   const [showMagicSettings, setShowMagicSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  
+
   return (
     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white rounded-lg shadow-2xl p-3 z-30 max-w-[95vw]">
       <div className="flex items-center gap-3 flex-wrap">
@@ -1877,7 +1877,7 @@ const SelectionToolbar = ({
                 >
                   <Plus size={18} />
                   {mode === 'add' && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"/>
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                   )}
                 </button>
                 <button
@@ -1887,7 +1887,7 @@ const SelectionToolbar = ({
                 >
                   <Minus size={18} />
                   {mode === 'subtract' && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-400 rounded-full animate-pulse"/>
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-400 rounded-full animate-pulse" />
                   )}
                 </button>
               </div>
@@ -1895,7 +1895,7 @@ const SelectionToolbar = ({
             <div className="w-px h-12 bg-slate-600" />
           </>
         )}
-        
+
         {/* Tool Selection */}
         <div className="flex flex-col items-center">
           <span className="text-[10px] text-gray-400 mb-1">Selection Tools</span>
@@ -1915,7 +1915,7 @@ const SelectionToolbar = ({
                 </span>
               )}
             </button>
-            
+
             <button
               onClick={() => setRefinementMode('brush')}
               className={`p-2 rounded transition-colors relative ${refinementMode === 'brush' ? 'bg-cyan-600' : 'hover:bg-slate-700'}`}
@@ -1926,7 +1926,7 @@ const SelectionToolbar = ({
                 <span className="absolute -bottom-1 -right-1 text-[8px] bg-cyan-700 px-1 rounded">1</span>
               )}
             </button>
-            
+
             <button
               onClick={() => setRefinementMode('eraser')}
               className={`p-2 rounded transition-colors relative ${refinementMode === 'eraser' ? 'bg-orange-600' : 'hover:bg-slate-700'}`}
@@ -1937,7 +1937,7 @@ const SelectionToolbar = ({
                 <span className="absolute -bottom-1 -right-1 text-[8px] bg-orange-700 px-1 rounded">2</span>
               )}
             </button>
-            
+
             <button
               onClick={() => setRefinementMode('lasso')}
               className={`p-2 rounded transition-colors relative ${refinementMode === 'lasso' ? 'bg-purple-600' : 'hover:bg-slate-700'}`}
@@ -1948,7 +1948,7 @@ const SelectionToolbar = ({
                 <span className="absolute -bottom-1 -right-1 text-[8px] bg-purple-700 px-1 rounded">3</span>
               )}
             </button>
-            
+
             <button
               onClick={() => setRefinementMode('rectangle')}
               className={`p-2 rounded transition-colors relative ${refinementMode === 'rectangle' ? 'bg-blue-600' : 'hover:bg-slate-700'}`}
@@ -1959,7 +1959,7 @@ const SelectionToolbar = ({
                 <span className="absolute -bottom-1 -right-1 text-[8px] bg-blue-700 px-1 rounded">4</span>
               )}
             </button>
-            
+
             <button
               onClick={() => setRefinementMode('ellipse')}
               className={`p-2 rounded transition-colors relative ${refinementMode === 'ellipse' ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}
@@ -1972,7 +1972,7 @@ const SelectionToolbar = ({
             </button>
           </div>
         </div>
-        
+
         {/* Settings */}
         <div className="w-px h-12 bg-slate-600" />
         {refinementMode === 'magic' ? (
@@ -2001,7 +2001,7 @@ const SelectionToolbar = ({
             <Sliders size={18} />
           </button>
         )}
-        
+
         {/* Additional Controls */}
         <div className="w-px h-12 bg-slate-600" />
         <button
@@ -2011,7 +2011,7 @@ const SelectionToolbar = ({
         >
           <Eye size={18} />
         </button>
-        
+
         <button
           onClick={() => setShowHelp(!showHelp)}
           className="p-2 rounded hover:bg-slate-700 transition-colors"
@@ -2019,21 +2019,21 @@ const SelectionToolbar = ({
         >
           <Info size={18} />
         </button>
-        
+
         {/* Action Buttons */}
         <div className="w-px h-12 bg-slate-600" />
         <div className="flex items-center gap-2">
-          <button 
-            onClick={onCancel} 
-            title="Cancel Selection (Esc)" 
+          <button
+            onClick={onCancel}
+            title="Cancel Selection (Esc)"
             className="px-3 py-2 rounded-md hover:bg-slate-700 text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-1"
           >
             <X size={18} />
             <span className="text-sm">Cancel</span>
           </button>
-          <button 
-            onClick={onConfirm} 
-            title="Extract Selected Object" 
+          <button
+            onClick={onConfirm}
+            title="Extract Selected Object"
             className="px-3 py-2 rounded-md bg-green-600 hover:bg-green-500 text-white transition-colors flex items-center gap-1"
           >
             <Check size={18} />
@@ -2041,9 +2041,9 @@ const SelectionToolbar = ({
           </button>
         </div>
       </div>
-      
+
       {/* Status Label */}
-            {/* Status Label - Update this part */}
+      {/* Status Label - Update this part */}
       <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 px-3 py-1 rounded text-xs whitespace-nowrap flex items-center gap-2">
         {refinementMode === 'magic' ? (
           <>
@@ -2051,28 +2051,28 @@ const SelectionToolbar = ({
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             )}
             <span className="text-purple-400">
-              ✨ Magic Grab - {processing.active && processing.status.includes('AI') 
-                ? 'AI is working...' 
-                : detectedObjectsCount > 0 
-                  ? `Click on any of ${detectedObjectsCount} detected objects` 
+              ✨ Magic Grab - {processing.active && processing.status.includes('AI')
+                ? 'AI is working...'
+                : detectedObjectsCount > 0
+                  ? `Click on any of ${detectedObjectsCount} detected objects`
                   : 'Click on any object'}
             </span>
           </>
         ) :
-          refinementMode === 'eraser' ? 
-          <span className="text-orange-400">🔄 Repelling Selection</span> :
-          refinementMode === 'rectangle' ?
-          <span className="text-blue-400">▭ Rectangle Selection</span> :
-          refinementMode === 'ellipse' ?
-          <span className="text-indigo-400">⭕ Ellipse Selection</span> :
-          refinementMode === 'lasso' ?
-          <span className="text-purple-400">✏️ Lasso Selection</span> :
-          mode === 'add' ? 
-          <span className="text-green-400">➕ Adding to Selection</span> : 
-          <span className="text-red-400">➖ Removing from Selection</span>
+          refinementMode === 'eraser' ?
+            <span className="text-orange-400">🔄 Repelling Selection</span> :
+            refinementMode === 'rectangle' ?
+              <span className="text-blue-400">▭ Rectangle Selection</span> :
+              refinementMode === 'ellipse' ?
+                <span className="text-indigo-400">⭕ Ellipse Selection</span> :
+                refinementMode === 'lasso' ?
+                  <span className="text-purple-400">✏️ Lasso Selection</span> :
+                  mode === 'add' ?
+                    <span className="text-green-400">➕ Adding to Selection</span> :
+                    <span className="text-red-400">➖ Removing from Selection</span>
         }
       </div>
-      
+
       {/* Help Panel */}
       {showHelp && (
         <div className="absolute bottom-full mb-2 right-0 bg-slate-800 rounded-lg p-4 shadow-xl w-96">
@@ -2087,7 +2087,7 @@ const SelectionToolbar = ({
               </div>
               <p className="text-gray-300">The AI automatically analyzes your image and highlights all extractable objects with colored bounding boxes!</p>
             </div>
-            
+
             <div className="text-gray-300 font-semibold mt-3 mb-1">✨ How it works:</div>
             <ol className="list-decimal list-inside space-y-1 text-gray-400">
               <li>Upload an image - AI scans automatically</li>
@@ -2098,7 +2098,7 @@ const SelectionToolbar = ({
               <li>Refine with brush if needed</li>
               <li>Click "Extract" to create a new layer</li>
             </ol>
-            
+
             <div className="text-gray-300 font-semibold mt-3 mb-1">⌨️ Shortcuts:</div>
             <div className="grid grid-cols-2 gap-1">
               <div><kbd className="bg-slate-700 px-1 rounded">0</kbd> Magic Grab</div>
@@ -2108,7 +2108,7 @@ const SelectionToolbar = ({
               <div><kbd className="bg-slate-700 px-1 rounded">Shift</kbd> Add mode</div>
               <div><kbd className="bg-slate-700 px-1 rounded">Alt</kbd> Subtract</div>
             </div>
-            
+
             <hr className="border-slate-700 my-2" />
             <div className="text-cyan-400 bg-cyan-900/20 p-2 rounded flex items-start gap-2">
               <Target size={14} className="mt-0.5 flex-shrink-0" />
@@ -2119,7 +2119,7 @@ const SelectionToolbar = ({
           </div>
         </div>
       )}
-      
+
       {/* Magic Grab Settings Panel */}
       {showMagicSettings && refinementMode === 'magic' && (
         <div className="absolute bottom-full mb-2 left-0 bg-slate-800 rounded-lg p-4 shadow-xl min-w-[340px]">
@@ -2145,7 +2145,7 @@ const SelectionToolbar = ({
                 Lower = exact colors | Higher = similar colors
               </p>
             </div>
-            
+
             <div>
               <label className="text-xs text-gray-400 flex justify-between mb-1">
                 <span>📍 Edge Detection</span>
@@ -2163,7 +2163,7 @@ const SelectionToolbar = ({
                 Higher = respects edges more
               </p>
             </div>
-            
+
             <div>
               <label className="text-xs text-gray-400 flex justify-between mb-1">
                 <span>✨ Edge Smoothing</span>
@@ -2181,7 +2181,7 @@ const SelectionToolbar = ({
                 Higher = smoother edges
               </p>
             </div>
-            
+
             <div>
               <label className="text-xs text-gray-400 flex justify-between mb-1">
                 <span>🌟 Edge Feather</span>
@@ -2199,7 +2199,7 @@ const SelectionToolbar = ({
                 Blur for natural-looking edges
               </p>
             </div>
-            
+
             <div className="pt-3 border-t border-slate-700">
               <div className="text-xs text-purple-300 bg-purple-900/30 p-3 rounded-lg border border-purple-500/30">
                 <div className="font-semibold mb-1 flex items-center gap-1">
@@ -2207,7 +2207,7 @@ const SelectionToolbar = ({
                   {detectedObjectsCount > 0 ? `${detectedObjectsCount} objects detected` : 'No objects detected'}
                 </div>
                 <p className="text-gray-300">
-                  {detectedObjectsCount > 0 
+                  {detectedObjectsCount > 0
                     ? 'Click on any highlighted object to select it instantly!'
                     : 'Upload a different image or try re-scanning'}
                 </p>
@@ -2216,7 +2216,7 @@ const SelectionToolbar = ({
           </div>
         </div>
       )}
-      
+
       {/* Brush Settings Panel */}
       {showBrushSettings && (refinementMode === 'brush' || refinementMode === 'eraser') && (
         <div className="absolute bottom-full mb-2 left-0 bg-slate-800 rounded-lg p-4 shadow-xl min-w-[280px]">
@@ -2278,37 +2278,36 @@ const SelectionToolbar = ({
   );
 };
 
-const LayerItem = ({ 
-  layer, 
-  isSelected, 
-  onSelect, 
-  onToggleVisibility, 
-  onToggleLock, 
-  onDelete, 
+const LayerItem = ({
+  layer,
+  isSelected,
+  onSelect,
+  onToggleVisibility,
+  onToggleLock,
+  onDelete,
   onDuplicate,
   onMoveUp,
   onMoveDown,
   onOpacityChange,
   onRemoveBackground,
   canMoveUp,
-  canMoveDown 
+  canMoveDown
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-  
+
   return (
-    <div 
-      className={`group relative p-2 rounded-lg transition-all cursor-pointer ${
-        isSelected 
-          ? 'bg-cyan-100 dark:bg-cyan-900/30 ring-2 ring-cyan-500' 
+    <div
+      className={`group relative p-2 rounded-lg transition-all cursor-pointer ${isSelected
+          ? 'bg-cyan-100 dark:bg-cyan-900/30 ring-2 ring-cyan-500'
           : 'hover:bg-gray-100 dark:hover:bg-slate-700'
-      }`}
+        }`}
       onClick={onSelect}
     >
       <div className="flex items-center gap-2">
         <div className="relative w-12 h-12 bg-gray-200 dark:bg-slate-700 rounded overflow-hidden flex-shrink-0">
           {layer.src && (
-            <img 
-              src={layer.src} 
+            <img
+              src={layer.src}
               alt={layer.name}
               className="w-full h-full object-contain"
               style={{ opacity: layer.visible ? layer.opacity / 100 : 0.3 }}
@@ -2320,7 +2319,7 @@ const LayerItem = ({
             </div>
           )}
         </div>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <p className="text-sm font-medium truncate">{layer.name}</p>
@@ -2331,7 +2330,7 @@ const LayerItem = ({
             {layer.opacity < 100 && <span>{layer.opacity}%</span>}
           </div>
         </div>
-        
+
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => { e.stopPropagation(); onToggleVisibility(); }}
@@ -2352,21 +2351,21 @@ const LayerItem = ({
             >
               <Settings size={16} />
             </button>
-            
+
             {showMenu && (
               <div className="absolute right-0 top-8 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg py-1 z-50 min-w-[120px]">
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); onDuplicate(); setShowMenu(false); }}
-                                    className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
-                                  >
-                                    <Copy size={14} /> Duplicate
-                                  </button>
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); onRemoveBackground(); setShowMenu(false); }}
-                                    className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
-                                  >
-                                    <Wand2 size={14} /> Remove BG
-                                  </button>                {canMoveUp && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDuplicate(); setShowMenu(false); }}
+                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+                >
+                  <Copy size={14} /> Duplicate
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRemoveBackground(); setShowMenu(false); }}
+                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+                >
+                  <Wand2 size={14} /> Remove BG
+                </button>                {canMoveUp && (
                   <button
                     onClick={(e) => { e.stopPropagation(); onMoveUp(); setShowMenu(false); }}
                     className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
@@ -2404,14 +2403,14 @@ const LayerItem = ({
 
 const LayerProperties = ({ layer, onUpdate }) => {
   if (!layer) return null;
-  
+
   return (
     <div className="space-y-3">
       <h4 className="font-medium text-sm flex items-center gap-2">
         <Settings size={16} />
         Layer Properties
       </h4>
-      
+
       <div>
         <label className="text-xs text-gray-600 dark:text-gray-400 flex justify-between mb-1">
           <span>Opacity</span>
@@ -2426,7 +2425,7 @@ const LayerProperties = ({ layer, onUpdate }) => {
           className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer slider"
         />
       </div>
-      
+
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="text-xs text-gray-600 dark:text-gray-400">X Position</label>
@@ -2447,7 +2446,7 @@ const LayerProperties = ({ layer, onUpdate }) => {
           />
         </div>
       </div>
-      
+
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="text-xs text-gray-600 dark:text-gray-400">Width</label>
@@ -2468,7 +2467,7 @@ const LayerProperties = ({ layer, onUpdate }) => {
           />
         </div>
       </div>
-      
+
       <div>
         <label className="text-xs text-gray-600 dark:text-gray-400 flex justify-between mb-1">
           <span>Rotation</span>
@@ -2569,7 +2568,7 @@ if (typeof document !== 'undefined') {
       transform: scale(1.2);
     }
   `;
-  
+
   const styleSheet = document.createElement("style");
   styleSheet.textContent = globalStyles;
   document.head.appendChild(styleSheet);

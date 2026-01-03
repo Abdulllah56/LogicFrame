@@ -22,13 +22,15 @@ app.use(express.json());
 
 // Initialize Supabase Client
 let supabase;
-console.log('DEBUG Env Keys:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
-if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
-  supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+
+if (supabaseUrl && supabaseKey) {
+  supabase = createClient(supabaseUrl, supabaseKey);
   console.log('✅ Supabase JS Client initialized');
 } else {
   console.error('❌ FATAL: SUPABASE_URL or SUPABASE_ANON_KEY missing in .env');
-  console.error('   Please check your .env file.');
+  console.error('   Please check your .env file or ensure NEXT_PUBLIC_ variables are set.');
   process.exit(1);
 }
 
