@@ -8,7 +8,9 @@ const dotenv = require('dotenv');
 const path = require('path');
 
 // Load environment variables from .env file
-dotenv.config({ path: path.join(__dirname, '.env') });
+// Load environment variables from root (prioritize .env.local)
+dotenv.config({ path: path.join(__dirname, '../../.env.local') });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 // Initialize Express
 const app = express();
@@ -20,6 +22,7 @@ app.use(express.json());
 
 // Initialize Supabase Client
 let supabase;
+console.log('DEBUG Env Keys:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
 if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
   supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
   console.log('✅ Supabase JS Client initialized');
@@ -335,7 +338,7 @@ app.post('/api/ai/generate-email', async (req, res) => {
       throw new Error('Invalid JSON response from AI');
     }
     text = jsonMatch[0];
-    
+
     const json = JSON.parse(text);
     res.json(json);
 
