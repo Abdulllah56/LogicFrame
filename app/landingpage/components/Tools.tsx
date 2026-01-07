@@ -1,43 +1,42 @@
 import React from 'react';
-import { ArrowRight, FileText, Image, DollarSign, PenTool, LayoutTemplate, Sparkles, ExternalLink } from 'lucide-react';
+import { ArrowRight, FileText, Image, DollarSign, PenTool, LayoutTemplate, Sparkles, ExternalLink, Bell } from 'lucide-react';
 import Spotlight from './ui/Spotlight';
 
-const ToolCard = ({ 
-  title, 
-  desc, 
-  icon: Icon, 
-  status, 
-  href, 
-  features 
-}: { 
-  title: string; 
-  desc: string; 
-  icon: any; 
-  status: 'live' | 'coming-soon' | 'dev'; 
-  href?: string; 
+const ToolCard = ({
+  title,
+  desc,
+  icon: Icon,
+  status,
+  href,
+  features
+}: {
+  title: string;
+  desc: string;
+  icon: any;
+  status: 'live' | 'coming-soon' | 'dev';
+  href?: string;
   features: string[];
 }) => {
   const isLive = status === 'live';
 
   return (
     <Spotlight className={`h-full group relative overflow-hidden bg-[#0f1729] border border-slate-800 transition-all duration-500 hover:border-cyan-500/30 ${!isLive ? 'opacity-80' : ''}`}>
-      
+
       {/* Subtle Background Pattern */}
-      <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" 
-           style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
+      <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none"
+        style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
       </div>
-      
+
       {/* Gradient Blob for Glow Effect */}
       <div className="absolute -top-24 -right-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
 
       <div className="relative z-10 p-8 flex flex-col h-full">
         {/* Header: Icon & Status */}
         <div className="flex justify-between items-start mb-6">
-          <div className={`p-3 rounded-2xl border backdrop-blur-md transition-all duration-300 group-hover:scale-110 shadow-lg ${
-            isLive 
-              ? 'bg-cyan-950/30 border-cyan-500/20 shadow-cyan-900/20' 
+          <div className={`p-3 rounded-2xl border backdrop-blur-md transition-all duration-300 group-hover:scale-110 shadow-lg ${isLive
+              ? 'bg-cyan-950/30 border-cyan-500/20 shadow-cyan-900/20'
               : 'bg-slate-800/50 border-slate-700 shadow-none'
-          }`}>
+            }`}>
             <Icon className={`w-8 h-8 ${isLive ? 'text-cyan-400' : 'text-slate-400'}`} />
           </div>
 
@@ -80,21 +79,21 @@ const ToolCard = ({
 
         {/* CTA / Footer */}
         <div className="pt-6 border-t border-slate-800 group-hover:border-slate-700 transition-colors flex items-center justify-between">
-           {isLive ? (
-             <a href={href} className="flex items-center gap-2 text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">
-               Launch Tool <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
-             </a>
-           ) : (
-             <span className="text-sm font-medium text-slate-600 flex items-center gap-2 cursor-not-allowed">
-               Notify Me <ArrowRight size={16} className="opacity-50" />
-             </span>
-           )}
-           
-           {isLive && (
-             <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-cyan-500/10 group-hover:text-cyan-400 transition-all">
-                <ExternalLink size={14} />
-             </div>
-           )}
+          {isLive ? (
+            <a href={href} className="flex items-center gap-2 text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">
+              Launch Tool <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
+            </a>
+          ) : (
+            <span className="text-sm font-medium text-slate-600 flex items-center gap-2 cursor-not-allowed">
+              Notify Me <ArrowRight size={16} className="opacity-50" />
+            </span>
+          )}
+
+          {isLive && (
+            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-cyan-500/10 group-hover:text-cyan-400 transition-all">
+              <ExternalLink size={14} />
+            </div>
+          )}
         </div>
       </div>
     </Spotlight>
@@ -120,7 +119,7 @@ const Tools = () => {
 
       {/* Grid Layout */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <ToolCard 
+        <ToolCard
           title="Invoice Generator"
           desc="Create professional invoices in 60 seconds. Choose from beautiful templates, customize branding, and export to PDF instantly."
           icon={FileText}
@@ -128,52 +127,52 @@ const Tools = () => {
           href="/invoicemaker"
           features={["PDF Export", "Auto-Math", "Custom Branding", "Multi-currency"]}
         />
-        
-        <ToolCard 
+
+        <ToolCard
           title="Screenshot Beautifier"
-          desc="Transform boring screenshots into stunning social media assets. Add gradients, shadows, and device frames automatically."
+          desc="Transform boring screenshots into stunning social media assets. Add backgrounds, shadows, and device frames automatically."
           icon={Image}
           status="live"
           href="/screenshotbeautifier"
-          features={["Gradient Backgrounds", "3D Tilt", "Device Frames", "4K Export"]}
+          features={["Gradient Backgrounds", "Device Frames", "4K Export", "Social Ready"]}
         />
 
-        <ToolCard 
-          title="Expense Tracker"
-          desc="Log business expenses on the go. Categorize spending, scan receipts, and generate tax-ready reports effortlessly."
+        <ToolCard
+          title="Finance Friend"
+          desc="Complex personal finance dashboard. Track expenses, manage bills, and visualize your financial goals with interactive charts."
           icon={DollarSign}
           status="live"
-          href="/expenses"
-          features={["Receipt Scanning", "Tax Categories", "CSV Export", "Monthly Charts"]}
+          href="/FinanceFriend"
+          features={["Expense Tracking", "Goal Setting", "Bill Management", "Data Viz"]}
         />
 
-        <ToolCard 
-          title="Background Remover"
-          desc="Remove backgrounds from product photos or headshots instantly using advanced AI models. Perfect for e-commerce listings."
-          icon={LayoutTemplate}
-          status="coming-soon"
-          href="#"
-          features={["AI Powered", "HD Quality", "Batch Processing", "Transparent PNG"]}
+        <ToolCard
+          title="Payment Chase"
+          desc="Automated invoice tracking and reminder system. Never miss a payment date and keep your cash flow healthy."
+          icon={Bell}
+          status="live"
+          href="/paymentchase"
+          features={["Auto-Reminders", "Payment Tracking", "Client Management", "Reports"]}
         />
 
-        <ToolCard 
-          title="Proposal Writer"
-          desc="Generate winning proposals with AI assistance. Auto-fill legal clauses, scope of work, and pricing tables."
-          icon={PenTool}
-          status="dev"
-          href="#"
-          features={["AI Drafting", "Legal Clauses", "E-Signature", "Client View Tracking"]}
+        <ToolCard
+          title="AI Image Editor"
+          desc="Advanced AI-powered editor for object detection, text extraction (OCR), and intelligent background removal."
+          icon={Sparkles}
+          status="live"
+          href="/ImageEditor"
+          features={["Object Detection", "Text OCR", "Background Removal", "AI Powered"]}
         />
-        
-        {/* Placeholder / "More Coming" Card */}
+
+        {/* Placeholder for future tools */}
         <div className="h-full min-h-[300px] p-8 rounded-xl border border-dashed border-slate-800 flex flex-col items-center justify-center text-center group hover:border-slate-700 hover:bg-slate-900/30 transition-all">
-           <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Sparkles className="text-slate-600 group-hover:text-cyan-400 transition-colors" size={24} />
-           </div>
-           <h3 className="text-xl font-bold text-slate-300 mb-2">More Tools Coming</h3>
-           <p className="text-slate-500 text-sm max-w-[200px]">
-             We are constantly building new tools suggested by our community.
-           </p>
+          <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <Sparkles className="text-slate-600 group-hover:text-cyan-400 transition-colors" size={24} />
+          </div>
+          <h3 className="text-xl font-bold text-slate-300 mb-2">More Tools Coming</h3>
+          <p className="text-slate-500 text-sm max-w-[200px]">
+            We are constantly building new tools suggested by our community.
+          </p>
         </div>
       </div>
     </section>
