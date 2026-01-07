@@ -17,7 +17,7 @@ export default function CanvasArea({ canvasRef }) {
         id="drop-hint"
         className="absolute bottom-3 left-3 text-xs text-gray-400 select-none"
       >
-        Drop image here or use "Upload image"
+        Drop image here or use &quot;Upload image&quot;
       </div>
     </div>
   );

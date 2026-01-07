@@ -1,5 +1,6 @@
 import React from 'react';
 import { Star, TrendingUp, User } from 'lucide-react';
+import Image from 'next/image';
 
 const testimonials = [
   {
@@ -45,8 +46,8 @@ const ReviewCard: React.FC<{ t: Testimonial }> = ({ t }) => (
   <div className="w-[350px] p-6 rounded-2xl bg-[#131b2e] border border-slate-800 shrink-0 mx-4 hover:border-cyan-500/30 transition-colors group">
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-slate-700 overflow-hidden border border-slate-600">
-           <img src={t.avatar} alt={t.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+        <div className="w-10 h-10 rounded-full bg-slate-700 overflow-hidden border border-slate-600 relative">
+          <Image src={t.avatar} alt={t.name} fill className="object-cover opacity-80 group-hover:opacity-100 transition-opacity" unoptimized />
         </div>
         <div>
           <div className="text-white font-bold text-sm">{t.name}</div>
@@ -54,14 +55,14 @@ const ReviewCard: React.FC<{ t: Testimonial }> = ({ t }) => (
         </div>
       </div>
       <div className="flex gap-0.5">
-        {[1,2,3,4,5].map(i => (
+        {[1, 2, 3, 4, 5].map(i => (
           <Star key={i} size={12} className="text-amber-400 fill-amber-400" />
         ))}
       </div>
     </div>
-    
-    <p className="text-slate-300 text-sm leading-relaxed mb-4">"{t.content}"</p>
-    
+
+    <p className="text-slate-300 text-sm leading-relaxed mb-4">&quot;{t.content}&quot;</p>
+
     <div className="flex items-center gap-2 text-xs font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full w-fit">
       <TrendingUp size={12} />
       {t.impact}
@@ -72,7 +73,7 @@ const ReviewCard: React.FC<{ t: Testimonial }> = ({ t }) => (
 const Community = () => {
   return (
     <section className="py-24 bg-[#0a0f1e] overflow-hidden relative border-y border-slate-800">
-      
+
       {/* Background Gradient */}
       <div className="absolute inset-0 bg-gradient-to-r from-[#0a0f1e] via-transparent to-[#0a0f1e] z-10 pointer-events-none"></div>
 
@@ -93,7 +94,7 @@ const Community = () => {
           ))}
         </div>
         <div className="flex animate-marquee absolute top-0 left-full">
-           {[...testimonials, ...testimonials].map((t, i) => (
+          {[...testimonials, ...testimonials].map((t, i) => (
             <ReviewCard key={`r1-d-${i}`} t={t} />
           ))}
         </div>
@@ -102,12 +103,12 @@ const Community = () => {
       {/* Row 2: Right to Left (Slightly different visual rhythm) */}
       <div className="flex relative">
         <div className="flex animate-marquee2">
-           {[...testimonials, ...testimonials].reverse().map((t, i) => (
+          {[...testimonials, ...testimonials].reverse().map((t, i) => (
             <ReviewCard key={`r2-${i}`} t={t} />
           ))}
         </div>
-         <div className="flex animate-marquee2 absolute top-0 left-full">
-           {[...testimonials, ...testimonials].reverse().map((t, i) => (
+        <div className="flex animate-marquee2 absolute top-0 left-full">
+          {[...testimonials, ...testimonials].reverse().map((t, i) => (
             <ReviewCard key={`r2-d-${i}`} t={t} />
           ))}
         </div>
