@@ -335,7 +335,7 @@ export function GoalCard({
           <DialogHeader>
             <DialogTitle className="text-white">Delete Goal</DialogTitle>
             <DialogDescription className="text-slate-400">
-              Are you sure you want to delete "{name}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{name}&quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
 

@@ -91,7 +91,7 @@ export function SavingsGoals({ goals, onAddGoal }: SavingsGoalsProps) {
 
           {goals.length === 0 && (
             <div className="col-span-full py-8 text-center">
-              <p className="text-muted-foreground mb-4">You don't have any savings goals yet</p>
+              <p className="text-muted-foreground mb-4">You don&apos;t have any savings goals yet</p>
               <Button
                 size="sm"
                 onClick={() => setIsAddGoalOpen(true)}

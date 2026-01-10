@@ -7,6 +7,7 @@ import { formatCurrency } from "../client/lib/invoice-utils";
 import { useInvoices } from "../client/hooks/useInvoices";
 import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
 import { FileText, DollarSign, Clock, AlertTriangle, Plus, ArrowRight } from "lucide-react";
+import Link from 'next/link';
 
 export default function Dashboard() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -65,7 +66,7 @@ export default function Dashboard() {
           Welcome back, {user?.firstName || "User"}!
         </h1>
         <p className="text-base text-muted-foreground">
-          Here's a snapshot of your invoicing activity.
+          Here&apos;s a snapshot of your invoicing activity.
         </p>
       </div>
 
@@ -103,10 +104,10 @@ export default function Dashboard() {
       <div className="recent-invoices-card">
         <div className="recent-invoices-header">
           <h2 className="recent-invoices-title">Recent Invoices</h2>
-          <a href="/invoicemaker/invoices" className="text-sm font-medium text-primary hover:underline flex items-center gap-1 transition-colors group">
+          <Link href="/invoicemaker/invoices" className="text-sm font-medium text-primary hover:underline flex items-center gap-1 transition-colors group">
             View All
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </a>
+          </Link>
         </div>
         {invoicesLoading ? (
           <div className="p-6">
@@ -130,10 +131,10 @@ export default function Dashboard() {
             </div>
             <h3 className="no-invoices-title">No Invoices Found</h3>
             <p className="no-invoices-description">It looks like you haven't created any invoices yet. Get started by creating your first one.</p>
-            <a href="/invoicemaker/invoices/new" className="common-button">
+            <Link href="/invoicemaker/invoices/new" className="common-button">
               <Plus className="h-4 w-4 mr-2" />
               Create First Invoice
-            </a>
+            </Link>
           </div>
         ) : (
           <table className="recent-invoices-table">
@@ -156,9 +157,9 @@ export default function Dashboard() {
                   <td><StatusBadge status={invoice.status} /></td>
                   <td>{new Date(invoice.createdAt).toLocaleDateString()}</td>
                   <td>
-                    <a href={`/invoicemaker/invoices/${invoice.id}`} className="text-primary hover:underline">
+                    <Link href={`/invoicemaker/invoices/${invoice.id}`} className="text-primary hover:underline">
                       View
-                    </a>
+                    </Link>
                   </td>
                 </tr>
               ))}

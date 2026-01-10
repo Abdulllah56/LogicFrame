@@ -6,14 +6,14 @@ const About = () => {
     <section className="px-[5%] py-24 max-w-[1400px] mx-auto" id="about">
       <div className="text-center mb-16">
         <h2 className="text-5xl mb-4">Built by Freelancers, for Freelancers</h2>
-        <p className="text-lg text-[#94a3b8]">LogicFrame started from a simple frustration: existing tools were too complex, too expensive, or just didn't work right.</p>
+        <p className="text-lg text-[#94a3b8]">LogicFrame started from a simple frustration: existing tools were too complex, too expensive, or just didn&apos;t work right.</p>
       </div>
 
       <div className="max-w-[800px] mx-auto text-center">
         <p className="text-lg leading-loose text-[#94a3b8] mb-8">
-          As a freelancer myself, I needed tools that were <strong className="text-[#00D9FF]">simple</strong>, 
-          <strong className="text-[#00D9FF]">fast</strong>, and 
-          <strong className="text-[#00D9FF]">actually useful</strong>. 
+          As a freelancer myself, I needed tools that were <strong className="text-[#00D9FF]">simple</strong>,
+          <strong className="text-[#00D9FF]">fast</strong>, and
+          <strong className="text-[#00D9FF]">actually useful</strong>.
           So I built them. No bloat. No BS. Just tools that work.
         </p>
         <p className="text-[#94a3b8] mb-8">

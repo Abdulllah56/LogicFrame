@@ -109,7 +109,7 @@ const Tools = () => {
           </div>
           <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[rgba(251,191,36,0.15)] text-[#FBBF24] border border-[rgba(251,191,36,0.3)] mb-4">⏳ IN DEVELOPMENT</span>
           <h3 className="text-2xl mb-4">More Tools Coming</h3>
-          <p className="text-[#94a3b8] leading-relaxed mb-6">We're building more tools to help you succeed. Contract templates, time tracking, client management, and more.</p>
+          <p className="text-[#94a3b8] leading-relaxed mb-6">We&apos;re building more tools to help you succeed. Contract templates, time tracking, client management, and more.</p>
           <ul className="list-none mb-6">
             <li className="py-2 text-[#94a3b8] text-sm flex items-center gap-2 before:content-['✓'] before:text-[#00D9FF] before:font-bold">Contract Generator</li>
             <li className="py-2 text-[#94a3b8] text-sm flex items-center gap-2 before:content-['✓'] before:text-[#00D9FF] before:font-bold">Time Tracker</li>

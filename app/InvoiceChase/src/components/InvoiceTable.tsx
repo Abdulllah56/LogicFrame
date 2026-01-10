@@ -402,7 +402,7 @@ export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
           <DialogHeader>
             <DialogTitle>Edit Invoice {editingInvoice?.invoice_number}</DialogTitle>
             <DialogDescription>
-              Make changes to the invoice details here. Click save when you're done.
+              Make changes to the invoice details here. Click save when you&apos;re done.
             </DialogDescription>
           </DialogHeader>
           {editingInvoice && (

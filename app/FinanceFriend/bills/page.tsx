@@ -210,7 +210,7 @@ export default function Bills() {
                 </div>
               </div>
               <h3 className="text-lg font-medium text-foreground mb-1">No overdue bills</h3>
-              <p className="text-muted-foreground">You're all caught up!</p>
+              <p className="text-muted-foreground">You&apos;re all caught up!</p>
             </div>
           )}
         </TabsContent>
@@ -263,7 +263,7 @@ export default function Bills() {
                 </div>
               </div>
               <h3 className="text-lg font-medium text-foreground mb-1">No paid bills</h3>
-              <p className="text-muted-foreground">Bills you've paid will appear here</p>
+              <p className="text-muted-foreground">Bills you&apos;ve paid will appear here</p>
             </div>
           )}
         </TabsContent>

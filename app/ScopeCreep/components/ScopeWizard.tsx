@@ -478,7 +478,7 @@ const ScopeWizard: React.FC<ScopeWizardProps> = ({ onSave, defaultSettings }) =>
               <XCircle className="text-destructive" />
               Out of Scope (Exclusions)
             </h2>
-            <p className="text-muted-foreground mb-6">Explicitly exclude items to prevent "I thought that was included" later.</p>
+            <p className="text-muted-foreground mb-6">Explicitly exclude items to prevent &quot;I thought that was included&quot; later.</p>
 
             <div className="mb-8">
               <h3 className="font-medium text-foreground mb-3">Common Exclusions</h3>

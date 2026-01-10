@@ -197,7 +197,7 @@ export default function Settings() {
               <CardTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-primary">Email Settings</CardTitle>
               <CardDescription className="text-muted-foreground/80">
                 Configure your Gmail account to send invoice reminders from your own email address.
-                You'll need to create a Gmail App Password.
+                You&apos;ll need to create a Gmail App Password.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -275,8 +275,8 @@ export default function Settings() {
                         <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside marker:text-primary">
                           <li>Go to your Google Account Security settings</li>
                           <li>Enable 2-Step Verification if not already enabled</li>
-                          <li>Search for "App Passwords" in the search bar</li>
-                          <li>Create a new App Password for "Mail"</li>
+                          <li>Search for &quot;App Passwords&quot; in the search bar</li>
+                          <li>Create a new App Password for &quot;Mail&quot;</li>
                           <li>Copy the 16-character password and paste it below</li>
                         </ol>
                         <a
@@ -313,7 +313,7 @@ export default function Settings() {
                         <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside marker:text-primary">
                           <li>Go to Yahoo Account Security settings</li>
                           <li>Enable Two-Step Verification</li>
-                          <li>Generate an App Password for "Mail"</li>
+                          <li>Generate an App Password for &quot;Mail&quot;</li>
                           <li>Copy the password and paste it below</li>
                         </ol>
                         <a

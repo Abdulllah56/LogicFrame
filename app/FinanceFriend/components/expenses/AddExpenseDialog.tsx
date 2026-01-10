@@ -53,7 +53,7 @@ export function AddExpenseDialog({ open, onOpenChange }: AddExpenseDialogProps) 
   const { toast } = useToast();
   const { data: categoriesData } = useCategories();
   const [isProcessingQuickInput, setIsProcessingQuickInput] = useState(false);
-  
+
   const currencies = [
     { value: "USD", symbol: "$" },
     { value: "EUR", symbol: "€" },
@@ -61,9 +61,9 @@ export function AddExpenseDialog({ open, onOpenChange }: AddExpenseDialogProps) 
     { value: "INR", symbol: "₹" },
     { value: "AED", symbol: "د.إ" }, // UAE Dirham, common in some regions
   ];
-  
+
   const categories: Category[] = Array.isArray(categoriesData) ? categoriesData : [];
-  
+
   const { register, handleSubmit, control, reset, setValue, formState: { errors } } = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
@@ -82,28 +82,28 @@ export function AddExpenseDialog({ open, onOpenChange }: AddExpenseDialogProps) 
     if (text.trim()) {
       setIsProcessingQuickInput(true);
       const parsed = parseExpenseText(text);
-      
+
       if (parsed.amount) setValue("amount", parsed.amount.toString());
       if (parsed.description) setValue("description", parsed.description);
-      
+
       if (parsed.category) {
         const matchedCategory = categories.find(
           (cat) => cat.name.toLowerCase().includes(parsed.category!.toLowerCase())
         );
         if (matchedCategory) setValue("categoryId", matchedCategory.id.toString());
       }
-      
+
       setIsProcessingQuickInput(false);
     }
   };
-  
+
   const onSubmit = (data: ExpenseFormValues) => {
     try {
       const amount = parseAmount(data.amount);
       const categoryId = parseInt(data.categoryId, 10);
-      
+
       if (amount <= 0) throw new Error("Amount must be greater than 0");
-      
+
       const dateObj = new Date(data.date);
       if (isNaN(dateObj.getTime())) throw new Error("Invalid date format");
 
@@ -127,16 +127,16 @@ export function AddExpenseDialog({ open, onOpenChange }: AddExpenseDialogProps) 
       });
     }
   };
-  
+
   const handleClose = () => {
     reset();
     onOpenChange(false);
   };
-  
+
   const handleQuickInputChangeWrapped = (value: string) => {
     handleQuickInputChange(value);
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-white text-black">
@@ -146,7 +146,7 @@ export function AddExpenseDialog({ open, onOpenChange }: AddExpenseDialogProps) 
             Enter the details of your expense
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="quickInput" className="text-black">Quick Input</Label>
@@ -157,10 +157,10 @@ export function AddExpenseDialog({ open, onOpenChange }: AddExpenseDialogProps) 
               className="bg-white text-black placeholder:text-gray-400"
             />
             <p className="text-xs text-gray-500">
-              Try typing "Coffee $4.50" for automatic categorization
+              Try typing &quot;Coffee $4.50&quot; for automatic categorization
             </p>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="amount" className="text-black">Amount</Label>
@@ -194,7 +194,7 @@ export function AddExpenseDialog({ open, onOpenChange }: AddExpenseDialogProps) 
                 <p className="text-sm text-red-500">{errors.amount.message}</p>
               )}
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="date" className="text-black">Date</Label>
               <Input
@@ -205,7 +205,7 @@ export function AddExpenseDialog({ open, onOpenChange }: AddExpenseDialogProps) 
               />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="category" className="text-black">Category</Label>
             <Controller
@@ -233,7 +233,7 @@ export function AddExpenseDialog({ open, onOpenChange }: AddExpenseDialogProps) 
               <p className="text-sm text-red-500">{errors.categoryId.message}</p>
             )}
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="description" className="text-black">Note (optional)</Label>
             <Textarea
@@ -243,7 +243,7 @@ export function AddExpenseDialog({ open, onOpenChange }: AddExpenseDialogProps) 
               {...register("description")}
             />
           </div>
-          
+
           <DialogFooter className="sm:justify-between">
             <Button type="button" variant="outline" onClick={handleClose} className="border-gray-300 text-black hover:bg-gray-100">
               Cancel

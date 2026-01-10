@@ -34,8 +34,8 @@ const ToolCard = ({
         {/* Header: Icon & Status */}
         <div className="flex justify-between items-start mb-6">
           <div className={`p-3 rounded-2xl border backdrop-blur-md transition-all duration-300 group-hover:scale-110 shadow-lg ${isLive
-              ? 'bg-cyan-950/30 border-cyan-500/20 shadow-cyan-900/20'
-              : 'bg-slate-800/50 border-slate-700 shadow-none'
+            ? 'bg-cyan-950/30 border-cyan-500/20 shadow-cyan-900/20'
+            : 'bg-slate-800/50 border-slate-700 shadow-none'
             }`}>
             <Icon className={`w-8 h-8 ${isLive ? 'text-cyan-400' : 'text-slate-400'}`} />
           </div>
@@ -160,7 +160,7 @@ const Tools = () => {
           desc="Advanced AI-powered editor for object detection, text extraction (OCR), and intelligent background removal."
           icon={Sparkles}
           status="live"
-          href="/ImageEditor"
+          href="/Object-Extractor"
           features={["Object Detection", "Text OCR", "Background Removal", "AI Powered"]}
         />
 
