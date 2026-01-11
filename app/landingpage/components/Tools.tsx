@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, FileText, Image, DollarSign, PenTool, LayoutTemplate, Sparkles, ExternalLink, Bell } from 'lucide-react';
+import { ArrowRight, FileText, Image, DollarSign, PenTool, LayoutTemplate, Sparkles, ExternalLink, Bell, Shield } from 'lucide-react';
 import Spotlight from './ui/Spotlight';
 
 const ToolCard = ({
@@ -151,7 +151,7 @@ const Tools = () => {
           desc="Automated invoice tracking and reminder system. Never miss a payment date and keep your cash flow healthy."
           icon={Bell}
           status="live"
-          href="/paymentchase"
+          href="/InvoiceChase"
           features={["Auto-Reminders", "Payment Tracking", "Client Management", "Reports"]}
         />
 
@@ -160,8 +160,17 @@ const Tools = () => {
           desc="Advanced AI-powered editor for object detection, text extraction (OCR), and intelligent background removal."
           icon={Sparkles}
           status="live"
-          href="/Object-Extractor"
+          href="/ImageEditor"
           features={["Object Detection", "Text OCR", "Background Removal", "AI Powered"]}
+        />
+
+        <ToolCard
+          title="Scope Creep"
+          desc="Prevent project scope creep before it happens. Define clear deliverables, set boundaries, and manage client expectations."
+          icon={Shield}
+          status="live"
+          href="/ScopeCreep"
+          features={["Scope Definition", "Exclusions List", "Client Approval", "Project Clarity"]}
         />
 
         {/* Placeholder for future tools */}

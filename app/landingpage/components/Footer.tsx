@@ -7,7 +7,7 @@ const Footer = () => {
     <footer className="bg-[#050914] border-t border-slate-800 pt-16 pb-8 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
-          
+
           {/* Brand */}
           <div>
             <div className="mb-4">
@@ -49,8 +49,8 @@ const Footer = () => {
           <div>
             <h3 className="text-white font-bold mb-4">Legal</h3>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li><a href="#" className="hover:text-cyan-400 transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-cyan-400 transition-colors">Terms of Service</a></li>
+              <li><a href="/privacy-policy" className="hover:text-cyan-400 transition-colors">Privacy Policy</a></li>
+              <li><a href="/terms-of-service" className="hover:text-cyan-400 transition-colors">Terms of Service</a></li>
               <li><a href="#" className="hover:text-cyan-400 transition-colors">Cookie Policy</a></li>
             </ul>
           </div>
