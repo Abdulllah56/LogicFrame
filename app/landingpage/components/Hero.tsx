@@ -24,11 +24,10 @@ const MagneticButton: React.FC<{ children: React.ReactNode; href: string; classN
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{ transform: `translate(${pos.x}px, ${pos.y}px)` }}
-      className={`relative inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 ease-out group ${
-        primary 
-          ? 'bg-cyan-400 text-[#030712] hover:shadow-[0_0_40px_rgba(0,217,255,0.4)]' 
+      className={`relative inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 ease-out group ${primary
+          ? 'bg-cyan-400 text-[#030712] hover:shadow-[0_0_40px_rgba(0,217,255,0.4)]'
           : 'text-slate-300 border border-slate-800 hover:border-slate-600 hover:bg-white/5'
-      } ${className}`}
+        } ${className}`}
     >
       {children}
     </a>
@@ -55,14 +54,14 @@ const Hero = () => {
   };
 
   return (
-    <section 
+    <section
       ref={containerRef}
       onMouseMove={handleMouseMove}
       className="relative pt-32 pb-20 overflow-hidden min-h-screen flex flex-col items-center selection:bg-cyan-500/30"
     >
       {/* Dynamic Light Background */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        <LightRays
+        {/* <LightRays
           raysOrigin="top-center"
           raysColor="#00d9ff"
           raysSpeed={0.3}
@@ -72,9 +71,9 @@ const Hero = () => {
           mouseInfluence={0.15}
           noiseAmount={0.05}
           distortion={0.05}
-        />
+        /> */}
         {/* Secondary ambient glow */}
-        <div 
+        <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-radial-gradient from-cyan-500/5 to-transparent opacity-50 blur-[120px]"
           style={{ transform: `translate(${mousePos.x * 50}px, ${mousePos.y * 50}px) translate(-50%, -50%)` }}
         ></div>
@@ -97,7 +96,7 @@ const Hero = () => {
         </h1>
 
         <p className="text-lg md:text-2xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
-          The all-in-one suite for the elite freelancer. 
+          The all-in-one suite for the elite freelancer.
           <span className="text-white"> Beautifully simple, powerfully functional.</span>
         </p>
 
@@ -107,7 +106,7 @@ const Hero = () => {
             Get Started Free
             <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
           </MagneticButton>
-          
+
           <MagneticButton href="#pricing">
             View Pricing
           </MagneticButton>
@@ -115,20 +114,20 @@ const Hero = () => {
 
         {/* Trusted By / Social Proof Preview */}
         <div className="flex flex-col items-center gap-4 opacity-40 hover:opacity-100 transition-opacity duration-500">
-           <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-500">Crafted for modern creatives at</span>
-           <div className="flex gap-8 items-center filter grayscale contrast-125">
-              <span className="font-black text-xl italic">STRIPE</span>
-              <span className="font-black text-xl">FIGMA</span>
-              <span className="font-black text-xl">VERCEL</span>
-              <span className="font-black text-xl">LINEAR</span>
-           </div>
+          <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-500">Crafted for modern creatives at</span>
+          <div className="flex gap-8 items-center filter grayscale contrast-125">
+            <span className="font-black text-xl italic">STRIPE</span>
+            <span className="font-black text-xl">FIGMA</span>
+            <span className="font-black text-xl">VERCEL</span>
+            <span className="font-black text-xl">LINEAR</span>
+          </div>
         </div>
       </div>
 
       {/* Main Preview */}
-      <div 
+      <div
         className="w-full relative z-20 mt-12 transition-all duration-1000 ease-out translate-y-0"
-        style={{ 
+        style={{
           transform: `translateY(${Math.max(0, scrollY * 0.1)}px)`,
           opacity: Math.max(0, 1 - scrollY / 1200)
         }}
