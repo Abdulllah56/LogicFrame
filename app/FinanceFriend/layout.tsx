@@ -1,5 +1,5 @@
 // app/financefriend/layout.tsx
-import '../../app/FinanceFriend/styles/financefriend.css'
+import '../../app/financefriend/styles/financefriend.css'
 import Header from './components/layout/Header'
 
 export const metadata = {
@@ -9,7 +9,7 @@ export const metadata = {
   openGraph: {
     title: 'FinanceFriend — Personal Finance Dashboard',
     description: 'Track spending, bills, budgets and savings goals with FinanceFriend.',
-    url: 'https://logicframe.vercel.app/FinanceFriend',
+    url: 'https://logicframe.vercel.app/financefriend',
     images: ['/og-financefriend.png']
   },
   icons: { icon: '/favicon.ico' }
@@ -24,7 +24,7 @@ export default function FinanceFriendLayout({
     "@context": "https://schema.org",
     "@type": "WebApplication",
     name: "FinanceFriend",
-    url: "https://logicframe.vercel.app/FinanceFriend",
+    url: "https://logicframe.vercel.app/financefriend",
     description: "Track spending, bills, budgets and savings goals with FinanceFriend.",
   };
 

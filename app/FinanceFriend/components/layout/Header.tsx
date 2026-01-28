@@ -33,22 +33,22 @@ export default function Header() {
           <nav className="hidden md:flex flex-grow justify-center">
             <ul className="flex space-x-8">
               <li>
-                <Link href="/FinanceFriend/dashboard" className={`text-base font-medium transition-colors ${pathname === '/FinanceFriend/dashboard' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}>
+                <Link href="/financefriend/dashboard" className={`text-base font-medium transition-colors ${pathname === '/financefriend/dashboard' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}>
                   Dashboard
                 </Link>
               </li>
               <li>
-                <Link href="/FinanceFriend/expenses" className={`text-base font-medium transition-colors ${pathname === '/FinanceFriend/expenses' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}>
+                <Link href="/financefriend/expenses" className={`text-base font-medium transition-colors ${pathname === '/financefriend/expenses' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}>
                   Expenses
                 </Link>
               </li>
               <li>
-                <Link href="/FinanceFriend/bills" className={`text-base font-medium transition-colors ${pathname === '/FinanceFriend/bills' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}>
+                <Link href="/financefriend/bills" className={`text-base font-medium transition-colors ${pathname === '/financefriend/bills' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}>
                   Bills
                 </Link>
               </li>
               <li>
-                <Link href="/FinanceFriend/goals" className={`text-base font-medium transition-colors ${pathname === '/FinanceFriend/goals' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}>
+                <Link href="/financefriend/goals" className={`text-base font-medium transition-colors ${pathname === '/FinanceFriend/goals' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}>
                   Goals
                 </Link>
               </li>

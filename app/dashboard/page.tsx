@@ -95,10 +95,17 @@ export default async function DashboardPage() {
                         const sub = userSubs.find(s => s.plan?.toolId === tool.id && s.status === 'active');
                         const planName = sub?.plan?.name || "Free";
 
-                        // Map specific routes if needed, otherwise fallback to slug
-                        const href = tool.slug === 'FinanceFriend' ? '/FinanceFriend' :
-                            tool.slug === 'ScopeCreep' ? '/ScopeCreep' :
-                                `/${tool.slug}`;
+                        // Map specific routes based on actual app directory structure
+                        let href = `/${tool.slug}`;
+
+                        // Explicit mappings for known tools where slug might not match folder exactly
+                        const slugLower = tool.slug.toLowerCase().replace(/\s+/g, '');
+                        if (slugLower === 'financefriend') href = '/financefriend';
+                        else if (slugLower === 'scopecreep') href = '/scopecreep';
+                        else if (slugLower === 'invoicechase') href = '/invoicechase';
+                        else if (slugLower === 'invoicemaker') href = '/invoicemaker';
+                        else if (slugLower === 'objectextractor' || slugLower === 'object-extractor') href = '/Object-Extractor';
+                        else if (slugLower === 'screenshotbeautifier') href = '/screenshotbeautifier';
 
                         return (
                             <EnhancedToolCard

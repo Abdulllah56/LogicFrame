@@ -5,11 +5,11 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://logicframe.vercel.app/FinanceFriend</loc>
+    <loc>https://logicframe.vercel.app/financefriend</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://logicframe.vercel.app/FinanceFriend/dashboard</loc>
+    <loc>https://logicframe.vercel.app/financefriend/dashboard</loc>
     <priority>0.8</priority>
   </url>
 </urlset>

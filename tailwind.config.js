@@ -6,7 +6,7 @@ module.exports = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './client/**/*.{js,jsx,ts,tsx}',
-    './app/InvoiceChase/src/**/*.{ts,tsx,js,jsx}',
+    './app/invoicechase/src/**/*.{ts,tsx,js,jsx}',
   ],
   theme: {
     extend: {

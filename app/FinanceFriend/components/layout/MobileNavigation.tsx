@@ -21,16 +21,16 @@ export default function MobileNavigation() {
       <div className="fixed bottom-0 left-0 right-0 bg-white/[0.02] backdrop-blur-md border-t border-border md:hidden z-10">
         <div className="flex justify-around">
           <Link
-            href="/FinanceFriend/dashboard"
-            className={`p-4 flex flex-col items-center transition-colors ${currentPath === '/FinanceFriend/dashboard' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
+            href="/financefriend/dashboard"
+            className={`p-4 flex flex-col items-center transition-colors ${currentPath === '/financefriend/dashboard' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
           >
             <HomeIcon className="h-5 w-5" />
             <span className="text-xs mt-1">Home</span>
           </Link>
 
           <Link
-            href="/FinanceFriend/expenses"
-            className={`p-4 flex flex-col items-center transition-colors ${currentPath === '/FinanceFriend/expenses' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
+            href="/financefriend/expenses"
+            className={`p-4 flex flex-col items-center transition-colors ${currentPath === '/financefriend/expenses' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
           >
             <BarChart3Icon className="h-5 w-5" />
             <span className="text-xs mt-1">Analytics</span>
@@ -45,16 +45,16 @@ export default function MobileNavigation() {
           </button>
 
           <Link
-            href="/FinanceFriend/bills"
-            className={`p-4 flex flex-col items-center transition-colors ${currentPath === '/FinanceFriend/bills' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
+            href="/financefriend/bills"
+            className={`p-4 flex flex-col items-center transition-colors ${currentPath === '/financefriend/bills' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
           >
             <CalendarClockIcon className="h-5 w-5" />
             <span className="text-xs mt-1">Bills</span>
           </Link>
 
           <Link
-            href="/FinanceFriend/goals"
-            className={`p-4 flex flex-col items-center transition-colors ${currentPath === '/FinanceFriend/goals' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
+            href="/financefriend/goals"
+            className={`p-4 flex flex-col items-center transition-colors ${currentPath === '/financefriend/goals' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
           >
             <UserIcon className="h-5 w-5" />
             <span className="text-xs mt-1">Goals</span>

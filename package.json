@@ -8,8 +8,8 @@
     "build": "next build",
     "start": "next start -p 5000 -H 0.0.0.0",
     "lint": "eslint",
-    "serve-scope": "node ./app/ScopeCreep/server.js",
-    "serve-scope:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./app/ScopeCreep/start-server.ps1"
+    "serve-scope": "node ./app/scopecreep/server.js",
+    "serve-scope:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./app/scopecreep/start-server.ps1"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

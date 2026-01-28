@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "../../hooks/use-toast";
 import { apiRequest } from "../queryClient";
-import { type Bill } from "../../../shared/schema";
+import { type Bill, insertBillSchema } from '../../../shared/schema';
 
 export const useAddBill = () => {
   const queryClient = useQueryClient();
@@ -20,7 +20,7 @@ export const useAddBill = () => {
     onMutate: async (newBill) => {
       await queryClient.cancelQueries({ queryKey: ["/api/bills"] });
       const previousBills = queryClient.getQueryData<Bill[]>(["/api/bills"]);
-      
+
       const optimisticBill: Bill = {
         id: Date.now(),
         ...newBill,
@@ -28,12 +28,12 @@ export const useAddBill = () => {
       };
 
       queryClient.setQueryData<Bill[]>(["/api/bills"], (old = []) => [...old, optimisticBill]);
-      
+
       toast({
         title: "Bill added",
         description: "Your bill has been added successfully.",
       });
-      
+
       return { previousBills };
     },
     onError: (err, newBill, context) => {

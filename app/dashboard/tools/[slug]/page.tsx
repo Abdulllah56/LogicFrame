@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import { db } from '@/utils/db'
 import { tools, plans, subscriptions } from '@/utils/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, ilike } from 'drizzle-orm'
 import { notFound, redirect } from 'next/navigation'
 import PricingCard, { PaddleLoader } from '../../components/PricingCard'
 import Link from 'next/link'
@@ -26,7 +26,7 @@ export default async function ToolPricingPage({ params }: PageProps) {
 
     // 1. Find the tool
     const tool = await db.query.tools.findFirst({
-        where: eq(tools.slug, slug),
+        where: ilike(tools.slug, slug),
         with: {
             plans: true,
         }

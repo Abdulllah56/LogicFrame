@@ -135,7 +135,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-foreground">Recent Transactions</h3>
             <Button variant="link" asChild>
-              <Link href="/FinanceFriend2/expenses">See All</Link>
+              <Link href="/financefriend/expenses">See All</Link>
             </Button>
           </div>
           <div className="overflow-x-auto">
@@ -192,8 +192,8 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${transaction.isIncome
-                            ? 'bg-green-500/10 text-green-500'
-                            : 'bg-primary/10 text-primary'
+                          ? 'bg-green-500/10 text-green-500'
+                          : 'bg-primary/10 text-primary'
                           }`}
                       >
                         {transaction.category.name}

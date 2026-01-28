@@ -142,7 +142,7 @@ const Tools = () => {
           desc="Complex personal finance dashboard. Track expenses, manage bills, and visualize your financial goals with interactive charts."
           icon={DollarSign}
           status="live"
-          href="/FinanceFriend"
+          href="/financefriend"
           features={["Expense Tracking", "Goal Setting", "Bill Management", "Data Viz"]}
         />
 
@@ -151,7 +151,7 @@ const Tools = () => {
           desc="Automated invoice tracking and reminder system. Never miss a payment date and keep your cash flow healthy."
           icon={Bell}
           status="live"
-          href="/InvoiceChase"
+          href="/invoicechase"
           features={["Auto-Reminders", "Payment Tracking", "Client Management", "Reports"]}
         />
 
@@ -169,7 +169,7 @@ const Tools = () => {
           desc="Prevent project scope creep before it happens. Define clear deliverables, set boundaries, and manage client expectations."
           icon={Shield}
           status="live"
-          href="/ScopeCreep"
+          href="/scopecreep"
           features={["Scope Definition", "Exclusions List", "Client Approval", "Project Clarity"]}
         />
 

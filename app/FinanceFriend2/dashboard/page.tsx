@@ -2,18 +2,18 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
-import { Button } from "../../FinanceFriend/components/ui/button";
-import { SummaryCard } from "../../FinanceFriend/components/dashboard/SummaryCard";
-import { ExpenseChart } from "../../FinanceFriend/components/dashboard/ExpenseChart";
-import { CategoryBreakdown } from "../../FinanceFriend/components/dashboard/CategoryBreakdown";
-import { RecentTransactions } from "../../FinanceFriend/components/dashboard/RecentTransactions";
-import { SavingsGoals } from "../../FinanceFriend/components/dashboard/SavingsGoals";
+import { Button } from "../../financefriend/components/ui/button";
+import { SummaryCard } from "../../financefriend/components/dashboard/SummaryCard";
+import { ExpenseChart } from "../../financefriend/components/dashboard/ExpenseChart";
+import { CategoryBreakdown } from "../../financefriend/components/dashboard/CategoryBreakdown";
+import { RecentTransactions } from "../../financefriend/components/dashboard/RecentTransactions";
+import { SavingsGoals } from "../../financefriend/components/dashboard/SavingsGoals";
 import { PlusIcon } from "lucide-react";
-import { AddExpenseDialog } from "../../FinanceFriend/components/expenses/AddExpenseDialog";
-import { useExpenses, useCategories } from "../../FinanceFriend/client/lib/hooks/useExpenses";
-import { useBills } from "../../FinanceFriend/client/lib/hooks/useBills";
-import { useGoals } from "../../FinanceFriend/client/lib/hooks/useGoals";
-import { formatCurrency } from "../../FinanceFriend/client/lib/utils/date-utils";
+import { AddExpenseDialog } from "../../financefriend/components/expenses/AddExpenseDialog";
+import { useExpenses, useCategories } from "../../financefriend/client/lib/hooks/useExpenses";
+import { useBills } from "../../financefriend/client/lib/hooks/useBills";
+import { useGoals } from "../../financefriend/client/lib/hooks/useGoals";
+import { formatCurrency } from "../../financefriend/client/lib/utils/date-utils";
 
 export default function Dashboard() {
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -28,7 +28,7 @@ export default function Dashboard() {
   const { data: categoriesData } = useCategories();
   const { data: billsData, isLoading: billsLoading, markBillAsPaid } = useBills();
   const { data: goalsData, isLoading: goalsLoading, addGoal, updateGoal } = useGoals();
-  
+
   // State for chart data
   const [chartData, setChartData] = useState<any[]>([]);
   const [categoryBreakdown, setCategoryBreakdown] = useState<any[]>([]);
@@ -36,12 +36,12 @@ export default function Dashboard() {
   const [totalSpent, setTotalSpent] = useState(0);
   const [totalBudget, setTotalBudget] = useState(1900); // Default budget
   const [upcomingBills, setUpcomingBills] = useState(0);
-  
+
   // Handle date range changes for the chart
   const handleDateRangeChange = useCallback((start: Date, end: Date) => {
     setDateRange({ start, end });
   }, []);
-  
+
   // Process expense data when it changes
   useEffect(() => {
     if (expensesData && categoriesData) {
@@ -50,29 +50,29 @@ export default function Dashboard() {
         const expenseDate = new Date(expense.date);
         const category = categoriesData.find((c: any) => c.id === expense.categoryId);
         return (
-          expenseDate >= dateRange.start && 
+          expenseDate >= dateRange.start &&
           expenseDate <= dateRange.end &&
           category?.name !== "Income"
         );
       });
-      
+
       // Calculate total spent
       const spent = filteredExpenses.reduce((sum: number, expense: any) => sum + expense.amount, 0);
       setTotalSpent(spent);
-      
+
       // Format chart data based on period
       const formattedChartData = formatChartData(filteredExpenses, period);
       setChartData(formattedChartData);
-      
+
       // Calculate category breakdown
       const breakdown = calculateCategoryBreakdown(expensesData, categoriesData);
       setCategoryBreakdown(breakdown);
-      
+
       // Get recent transactions
       const sortedTransactions = [...expensesData].sort((a, b) => {
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       });
-      
+
       const transactions = sortedTransactions.slice(0, 5).map((expense) => {
         const category = categoriesData.find((c: any) => c.id === expense.categoryId);
         return {
@@ -89,11 +89,11 @@ export default function Dashboard() {
           isIncome: category?.name === "Income",
         };
       });
-      
+
       setRecentTransactions(transactions);
     }
   }, [expensesData, categoriesData, dateRange, period]);
-  
+
   // Calculate upcoming bills total
   useEffect(() => {
     if (billsData) {
@@ -102,11 +102,11 @@ export default function Dashboard() {
       setUpcomingBills(total);
     }
   }, [billsData]);
-  
+
   // Format chart data based on the selected period
   const formatChartData = (expenses: any[], view: "day" | "week" | "month") => {
     if (!expenses.length) return [];
-    
+
     if (view === "day") {
       // Group by day
       const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -114,12 +114,12 @@ export default function Dashboard() {
         date: days[i],
         amount: 0,
       }));
-      
+
       expenses.forEach(expense => {
         const day = new Date(expense.date).getDay();
         dailyData[day].amount += expense.amount;
       });
-      
+
       return dailyData;
     } else if (view === "week") {
       // Group by week of month
@@ -127,7 +127,7 @@ export default function Dashboard() {
         date: `Week ${i + 1}`,
         amount: 0,
       }));
-      
+
       expenses.forEach(expense => {
         const date = new Date(expense.date);
         const weekOfMonth = Math.floor((date.getDate() - 1) / 7);
@@ -135,7 +135,7 @@ export default function Dashboard() {
           weeksData[weekOfMonth].amount += expense.amount;
         }
       });
-      
+
       return weeksData;
     } else {
       // Group by month
@@ -144,31 +144,31 @@ export default function Dashboard() {
         date: months[i],
         amount: 0,
       }));
-      
+
       expenses.forEach(expense => {
         const month = new Date(expense.date).getMonth();
         monthlyData[month].amount += expense.amount;
       });
-      
+
       return monthlyData;
     }
   };
-  
+
   // Calculate category breakdown with percentages
   const calculateCategoryBreakdown = (expenses: any[], categories: any[]) => {
     if (!expenses || !categories) return [];
-    
+
     // Filter out income
     const filteredExpenses = expenses.filter(expense => {
       const category = categories.find(c => c.id === expense.categoryId);
       return category?.name !== "Income";
     });
-    
+
     // Calculate total (excluding income)
     const total = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    
+
     if (total === 0) return [];
-    
+
     // Group by category
     const categoryMap = new Map();
     filteredExpenses.forEach(expense => {
@@ -179,13 +179,13 @@ export default function Dashboard() {
         categoryMap.set(categoryId, expense.amount);
       }
     });
-    
+
     // Convert to array and sort by amount (descending)
     const result = Array.from(categoryMap.entries())
       .map(([categoryId, amount]) => {
         const category = categories.find(c => c.id === categoryId);
         if (!category) return null;
-        
+
         return {
           id: categoryId,
           name: category.name,
@@ -196,14 +196,14 @@ export default function Dashboard() {
       })
       .filter(item => item !== null)
       .sort((a, b) => b!.amount - a!.amount);
-    
+
     return result;
   };
 
   // Date for greeting header
   const currentDate = new Date();
   const formattedDate = format(currentDate, "EEEE, MMMM d, yyyy");
-  
+
   return (
     <div>
       {/* Greeting and Date Section */}
@@ -213,7 +213,7 @@ export default function Dashboard() {
           <p className="text-gray-600 text-sm mt-1">{formattedDate}</p>
         </div>
         <div className="mt-4 md:mt-0">
-          <Button 
+          <Button
             className="bg-[#0F172A] text-white hover:bg-[#1E293B] flex items-center space-x-2"
             onClick={() => setShowAddExpense(true)}
           >
@@ -233,10 +233,10 @@ export default function Dashboard() {
           progressMax={totalBudget}
           progressLabel={`Budget: ${formatCurrency(totalBudget)}`}
         />
-        
+
         <SummaryCard
           title="Savings Goals"
-          value={goalsData && goalsData.length > 0 
+          value={goalsData && goalsData.length > 0
             ? `${formatCurrency(goalsData[0].currentAmount)} / ${formatCurrency(goalsData[0].targetAmount)}`
             : "$0 / $0"
           }
@@ -251,7 +251,7 @@ export default function Dashboard() {
           progressMax={goalsData && goalsData.length > 0 ? goalsData[0].targetAmount : 1}
           progressLabel={goalsData && goalsData.length > 0 ? goalsData[0].name : "No goals"}
         />
-        
+
         <SummaryCard
           title="Upcoming Bills"
           value={formatCurrency(upcomingBills)}
@@ -270,7 +270,7 @@ export default function Dashboard() {
               .map((bill: any) => {
                 const dueDate = new Date(bill.dueDate);
                 const daysRemaining = Math.ceil((dueDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
-                
+
                 return (
                   <div key={bill.id} className="flex justify-between items-center">
                     <span className="text-sm text-gray-700">{bill.name}</span>
@@ -283,7 +283,7 @@ export default function Dashboard() {
                   </div>
                 );
               })}
-              
+
             {(!billsData || billsData.filter((bill: any) => !bill.isPaid).length === 0) && (
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">No upcoming bills</span>
@@ -295,13 +295,13 @@ export default function Dashboard() {
 
       {/* Expenses Chart and Category Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <ExpenseChart 
+        <ExpenseChart
           data={chartData}
           period={period}
           onPeriodChange={setPeriod}
           onDateRangeChange={handleDateRangeChange}
         />
-        
+
         <CategoryBreakdown
           categories={categoryBreakdown}
           total={totalSpent}
@@ -318,7 +318,7 @@ export default function Dashboard() {
         goals={goalsData || []}
         onAddGoal={addGoal}
       />
-      
+
       {/* Add Expense Dialog */}
       <AddExpenseDialog
         open={showAddExpense}

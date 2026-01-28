@@ -13,9 +13,9 @@ export async function middleware(request: NextRequest) {
     // Adjust this pattern to match your app's structure
     const protectedPaths = [
         '/dashboard',
-        '/FinanceFriend',
-        '/ScopeCreep',
-        '/InvoiceChase',
+        '/financefriend',
+        '/scopecreep',
+        '/invoicechase',
         '/invoicemaker',
         '/object-extractor',
         '/screenshot-beautifier',

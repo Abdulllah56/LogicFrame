@@ -73,7 +73,7 @@ const Tools = () => {
             <li className="py-2 text-[#94a3b8] text-sm flex items-center gap-2 before:content-['✓'] before:text-[#00D9FF] before:font-bold">Tax-Ready Exports</li>
             <li className="py-2 text-[#94a3b8] text-sm flex items-center gap-2 before:content-['✓'] before:text-[#00D9FF] before:font-bold">Receipt Storage</li>
           </ul>
-          <a href="/FinanceFriend" className="inline-flex items-center gap-2 text-[#00D9FF] no-underline font-semibold hover:gap-3 transition-all after:content-['→']">Try Expense Tracker</a>
+          <a href="/financefriend" className="inline-flex items-center gap-2 text-[#00D9FF] no-underline font-semibold hover:gap-3 transition-all after:content-['→']">Try Expense Tracker</a>
         </div>
 
         {/* Background Remover */}
