@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { storage } from '../../financefriend/server/storage';
-import { insertExpenseSchema } from '../../financefriend/shared/schema';
+import { storage } from '../../FinanceFriend/server/storage';
+import { insertExpenseSchema } from '../../FinanceFriend/shared/schema';
 import { z } from 'zod';
 
 export async function GET(request: NextRequest) {
