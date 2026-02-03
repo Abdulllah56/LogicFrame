@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { storage } from '../../../financefriend/server/storage';
+import { storage } from '../../../FinanceFriend/server/storage';
 
 export async function GET(request: NextRequest) {
     try {

@@ -1,5 +1,5 @@
 // app/financefriend/layout.tsx
-import '../../app/financefriend/styles/financefriend.css'
+import './styles/financefriend.css'
 import Header from './components/layout/Header'
 
 export const metadata = {
