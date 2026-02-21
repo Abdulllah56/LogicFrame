@@ -8,6 +8,8 @@ import EnhancedToolCard from './components/EnhancedToolCard'
 import StatCard from './components/StatCard'
 import { Activity, CreditCard, Sparkles, Layers } from 'lucide-react'
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
     const cookieStore = await cookies()
     const supabase = createClient(cookieStore)
@@ -96,16 +98,25 @@ export default async function DashboardPage() {
                         const planName = sub?.plan?.name || "Free";
 
                         // Map specific routes based on actual app directory structure
+                        const normalizedSlug = tool.slug.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+                        // Default fallback
                         let href = `/${tool.slug}`;
 
-                        // Explicit mappings for known tools where slug might not match folder exactly
-                        const slugLower = tool.slug.toLowerCase().replace(/\s+/g, '');
-                        if (slugLower === 'financefriend') href = '/financefriend';
-                        else if (slugLower === 'scopecreep' || slugLower === 'scope-creep') href = '/scopecreep';
-                        else if (slugLower === 'invoicechase') href = '/invoicechase';
-                        else if (slugLower === 'invoicemaker') href = '/invoicemaker';
-                        else if (slugLower === 'objectextractor' || slugLower === 'object-extractor') href = '/Object-Extractor';
-                        else if (slugLower === 'screenshotbeautifier') href = '/screenshotbeautifier';
+                        const routeMap: Record<string, string> = {
+                            'financefriend': '/financefriend',
+                            'scopecreep': '/scopecreep',
+                            'invoicechase': '/invoicechase',
+                            'invoicemaker': '/invoicemaker',
+                            'screenshotbeautifier': '/screenshotbeautifier',
+                            'objectextractor': '/Object-Extractor',
+                        };
+
+                        if (routeMap[normalizedSlug]) {
+                            href = routeMap[normalizedSlug];
+                        }
+
+                        console.log(`Mapping Tool: ${tool.name} | DB Slug: ${tool.slug} | Normalized: ${normalizedSlug} | Result Href: ${href}`);
 
                         return (
                             <EnhancedToolCard
