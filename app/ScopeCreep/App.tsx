@@ -5,34 +5,60 @@ import Dashboard from './components/Dashboard';
 import ProjectDetail from './components/ProjectDetail';
 import ScopeWizard from './components/ScopeWizard';
 import Settings from './components/Settings';
-import Auth from './components/Auth';
 import { Project, UserSettings } from './types';
+import { createClient } from '@/utils/supabase/client';
+
+const supabase = createClient();
 
 const App: React.FC = () => {
   // State
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [authError, setAuthError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
 
   // API Base URL
   const API_URL = 'http://127.0.0.1:3001/api';
 
-  // Load User Session
+  // Load Supabase Auth Session
   useEffect(() => {
-    const savedUser = localStorage.getItem('scp_user_session');
-    if (savedUser) {
-      try {
-        const user = JSON.parse(savedUser);
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const user = {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.full_name || session.user.email,
+        };
         setCurrentUser(user);
         fetchProjects(user.id);
-      } catch (e) {
-        console.error("Failed to parse user session", e);
-        localStorage.removeItem('scp_user_session');
+        loadSettings(user.id);
       }
-    }
-    setIsAuthChecking(false);
+      setIsAuthChecking(false);
+    };
+
+    initAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const user = {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.full_name || session.user.email,
+        };
+        setCurrentUser(user);
+        fetchProjects(user.id);
+      } else {
+        setCurrentUser(null);
+        setProjects([]);
+        // Redirect to main app login
+        window.location.href = '/auth/login';
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const fetchProjects = async (userId: string) => {
@@ -50,55 +76,22 @@ const App: React.FC = () => {
     }
   };
 
-  // Auth Handlers
-  const handleLogin = async (email: string, pass: string) => {
-    setAuthError('');
-    try {
-      const res = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: pass })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setCurrentUser(data);
-        localStorage.setItem('scp_user_session', JSON.stringify(data));
-        fetchProjects(data.id);
-      } else {
-        setAuthError(data.error || 'Login failed');
+  const loadSettings = (userId: string) => {
+    const saved = localStorage.getItem(`scp_settings_${userId}`);
+    if (saved) {
+      try {
+        setUserSettings(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse settings", e);
       }
-    } catch (e) {
-      setAuthError('Connection error. Is server running?');
     }
   };
 
-  const handleSignup = async (email: string, pass: string, name: string) => {
-    setAuthError('');
-    try {
-      const res = await fetch(`${API_URL}/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: pass, name })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setCurrentUser(data);
-        localStorage.setItem('scp_user_session', JSON.stringify(data));
-        setProjects([]); // New user has no projects
-      } else {
-        setAuthError(data.error || 'Signup failed');
-      }
-    } catch (e) {
-      setAuthError('Connection error. Is server running?');
-    }
-  };
-
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setCurrentUser(null);
     setProjects([]);
-    localStorage.removeItem('scp_user_session');
+    window.location.href = '/auth/login';
   };
 
   // Data Saving Helpers
@@ -140,12 +133,17 @@ const App: React.FC = () => {
   };
 
   const handleSaveSettings = (newSettings: UserSettings) => {
-    // For prototype, we update local state. In production, add PUT /api/user endpoint
     if (currentUser) {
-      const updatedUser = { ...currentUser, settings: newSettings };
-      setCurrentUser(updatedUser);
-      localStorage.setItem('scp_user_session', JSON.stringify(updatedUser));
+      setUserSettings(newSettings);
+      localStorage.setItem(`scp_settings_${currentUser.id}`, JSON.stringify(newSettings));
     }
+  };
+
+  const effectiveSettings = userSettings || {
+    name: currentUser?.name || '',
+    email: currentUser?.email || '',
+    defaultHourlyRate: 100,
+    currency: 'USD'
   };
 
   if (isAuthChecking) {
@@ -157,7 +155,9 @@ const App: React.FC = () => {
   }
 
   if (!currentUser) {
-    return <Auth onLogin={handleLogin} onSignup={handleSignup} error={authError} />;
+    // Middleware already redirects to /auth/login, but just in case:
+    window.location.href = '/auth/login';
+    return null;
   }
 
   return (
@@ -185,7 +185,7 @@ const App: React.FC = () => {
                 <ProjectDetail
                   projects={projects}
                   updateProject={updateCurrentUserProject}
-                  userSettings={currentUser.settings || {}}
+                  userSettings={effectiveSettings}
                 />
               }
             />
@@ -194,7 +194,7 @@ const App: React.FC = () => {
               element={
                 <ScopeWizard
                   onSave={handleSaveNewProject}
-                  defaultSettings={currentUser.settings || {}}
+                  defaultSettings={effectiveSettings}
                 />
               }
             />
@@ -202,12 +202,7 @@ const App: React.FC = () => {
               path="/settings"
               element={
                 <Settings
-                  settings={currentUser.settings || {
-                    name: currentUser.name,
-                    email: currentUser.email,
-                    defaultHourlyRate: 100,
-                    currency: 'USD'
-                  }}
+                  settings={effectiveSettings}
                   onSave={handleSaveSettings}
                 />
               }

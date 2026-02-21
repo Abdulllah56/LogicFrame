@@ -39,7 +39,7 @@ const Index = () => {
       setUser(session?.user ?? null);
 
       if (!session) {
-        navigate("/auth");
+        window.location.href = '/auth/login';
       }
     });
 
@@ -49,7 +49,7 @@ const Index = () => {
       setUser(session?.user ?? null);
 
       if (!session) {
-        navigate("/auth");
+        window.location.href = '/auth/login';
       }
     });
 
@@ -147,7 +147,7 @@ const Index = () => {
       toast.error("Failed to logout");
     } else {
       toast.success("Logged out successfully");
-      navigate("/auth");
+      window.location.href = '/auth/login';
     }
   };
 

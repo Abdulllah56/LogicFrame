@@ -62,69 +62,9 @@ app.get('/', (req, res) => {
   res.send('Scope Creep Protector Backend (Supabase Client + Email + AI) is Running.');
 });
 
-// --- AUTH ENDPOINTS ---
-
-app.post('/api/signup', async (req, res) => {
-  const { email, password, name } = req.body;
-  try {
-    // Check if user exists
-    const { data: existingUsers, error: checkError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email);
-
-    if (checkError) throw checkError;
-
-    if (existingUsers && existingUsers.length > 0) {
-      return res.status(400).json({ error: 'User already exists' });
-    }
-
-    // Insert new user
-    const { data: newUser, error: insertError } = await supabase
-      .from('users')
-      .insert([{
-        email,
-        name,
-        password, // Note: In production, hash this password!
-        settings: { name, email, defaultHourlyRate: 100, currency: 'USD' }
-      }])
-      .select()
-      .single();
-
-    if (insertError) throw insertError;
-
-    res.status(201).json(toCamel(newUser));
-  } catch (err) {
-    console.error("Signup Error:", err);
-    res.status(500).json({ error: 'Signup failed', details: err.message });
-  }
-});
-
-app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email);
-
-    if (error) throw error;
-
-    if (!users || users.length === 0) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    const user = users[0];
-    if (user.password !== password) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    res.json(toCamel(user));
-  } catch (err) {
-    console.error("Login Error:", err);
-    res.status(500).json({ error: 'Login failed', details: err.message });
-  }
-});
+// --- AUTH ENDPOINTS REMOVED ---
+// Auth is now handled by the main LogicFrame app via Supabase Auth.
+// Users authenticate at /auth/login and the session is shared across all tools.
 
 // --- DATA ENDPOINTS ---
 

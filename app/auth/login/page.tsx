@@ -4,6 +4,7 @@
 import { login } from '../actions'
 import Link from 'next/link'
 import { useActionState } from 'react'
+import OAuthSignIn from './oauth-signin'
 
 const initialState = {
     error: '',
@@ -19,6 +20,19 @@ export default function LoginPage() {
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
                     Sign in to LogicFrame
                 </h2>
+                <div className="mt-6">
+                    <OAuthSignIn />
+                    <div className="relative mt-6">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-300 dark:border-zinc-600" />
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-white dark:bg-zinc-800 text-gray-500 dark:text-gray-400">
+                                Or continue with email
+                            </span>
+                        </div>
+                    </div>
+                </div>
                 <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
                     Or{' '}
                     <Link href="/auth/signup" className="font-medium text-blue-600 hover:text-blue-500">

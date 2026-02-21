@@ -10,8 +10,11 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Demo user ID (in a real app this would come from auth)
-  const DEMO_USER_ID = 1;
+  // Helper to extract userId from request
+  const getUserId = (req: any): number => {
+    const userId = parseInt(req.query.userId || req.body?.userId || '1');
+    return userId;
+  };
 
   // Create a demo user if it doesn't exist
   // const existingUser = await storage.getUserByUsername("demo");
@@ -32,13 +35,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Expenses Endpoints
   app.get("/api/expenses", async (req, res) => {
-    const expenses = await storage.getExpenses(DEMO_USER_ID);
+    const expenses = await storage.getExpenses(getUserId(req));
     res.json(expenses);
   });
 
   app.post("/api/expenses", async (req, res) => {
     try {
-      const expenseData = { ...req.body, userId: DEMO_USER_ID };
+      const expenseData = { ...req.body, userId: getUserId(req) };
       const validatedData = insertExpenseSchema.parse(expenseData);
       const newExpense = await storage.createExpense(validatedData);
       res.status(201).json(newExpense);
@@ -95,7 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endDate = new Date(end as string);
 
       const expenses = await storage.getExpensesByDateRange(
-        DEMO_USER_ID,
+        getUserId(req),
         startDate,
         endDate
       );
@@ -108,19 +111,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Bills Endpoints
   app.get("/api/bills", async (req, res) => {
-    const bills = await storage.getBills(DEMO_USER_ID);
+    const bills = await storage.getBills(getUserId(req));
     res.json(bills);
   });
 
   app.get("/api/bills/due", async (req, res) => {
     const days = req.query.days ? parseInt(req.query.days as string) : 30;
-    const dueBills = await storage.getBillsDue(DEMO_USER_ID, days);
+    const dueBills = await storage.getBillsDue(getUserId(req), days);
     res.json(dueBills);
   });
 
   app.post("/api/bills", async (req, res) => {
     try {
-      const billData = { ...req.body, userId: DEMO_USER_ID };
+      const billData = { ...req.body, userId: getUserId(req) };
       const validatedData = insertBillSchema.parse(billData);
       const newBill = await storage.createBill(validatedData);
       res.status(201).json(newBill);
@@ -181,13 +184,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Savings Goals Endpoints
   app.get("/api/goals", async (req, res) => {
-    const goals = await storage.getSavingsGoals(DEMO_USER_ID);
+    const goals = await storage.getSavingsGoals(getUserId(req));
     res.json(goals);
   });
 
   app.post("/api/goals", async (req, res) => {
     try {
-      const goalData = { ...req.body, userId: DEMO_USER_ID };
+      const goalData = { ...req.body, userId: getUserId(req) };
       const validatedData = insertSavingsGoalSchema.parse(goalData);
       const newGoal = await storage.createSavingsGoal(validatedData);
       res.status(201).json(newGoal);
@@ -233,13 +236,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Budget Endpoints
   app.get("/api/budgets", async (req, res) => {
-    const budgets = await storage.getBudgets(DEMO_USER_ID);
+    const budgets = await storage.getBudgets(getUserId(req));
     res.json(budgets);
   });
 
   app.post("/api/budgets", async (req, res) => {
     try {
-      const budgetData = { ...req.body, userId: DEMO_USER_ID };
+      const budgetData = { ...req.body, userId: getUserId(req) };
       const validatedData = insertBudgetSchema.parse(budgetData);
       const newBudget = await storage.createBudget(validatedData);
       res.status(201).json(newBudget);
@@ -286,7 +289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard Summary Endpoint
   app.get("/api/dashboard/summary", async (req, res) => {
     try {
-      const summary = await storage.getDashboardSummary(DEMO_USER_ID);
+      const summary = await storage.getDashboardSummary(getUserId(req));
       res.json(summary);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard summary" });

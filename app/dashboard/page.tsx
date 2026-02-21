@@ -101,7 +101,7 @@ export default async function DashboardPage() {
                         // Explicit mappings for known tools where slug might not match folder exactly
                         const slugLower = tool.slug.toLowerCase().replace(/\s+/g, '');
                         if (slugLower === 'financefriend') href = '/financefriend';
-                        else if (slugLower === 'scopecreep') href = '/scopecreep';
+                        else if (slugLower === 'scopecreep' || slugLower === 'scope-creep') href = '/scopecreep';
                         else if (slugLower === 'invoicechase') href = '/invoicechase';
                         else if (slugLower === 'invoicemaker') href = '/invoicemaker';
                         else if (slugLower === 'objectextractor' || slugLower === 'object-extractor') href = '/Object-Extractor';
