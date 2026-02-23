@@ -19,7 +19,9 @@ const App: React.FC = () => {
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
 
   // API Base URL
-  const API_URL = 'http://127.0.0.1:3001/api';
+  const API_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://127.0.0.1:3001/api'
+    : '/api';
 
   // Load Supabase Auth Session
   useEffect(() => {

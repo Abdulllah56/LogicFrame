@@ -17,8 +17,8 @@ export async function middleware(request: NextRequest) {
         '/scopecreep',
         '/invoicechase',
         '/invoicemaker',
-        '/object-extractor',
-        '/screenshot-beautifier',
+        '/Object-Extractor',
+        '/screenshotbeautifier',
     ];
 
     const isProtected = protectedPaths.some((path) =>

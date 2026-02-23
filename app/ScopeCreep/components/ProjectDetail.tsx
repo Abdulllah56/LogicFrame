@@ -59,7 +59,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projects, updateProject, 
 
     const checkServerStatus = async () => {
         try {
-            const res = await fetch('http://127.0.0.1:3001/');
+            const baseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://127.0.0.1:3001' : '';
+            const res = await fetch(`${baseUrl}/`);
             if (res.ok) {
                 setServerStatus('online');
             } else {
@@ -100,7 +101,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projects, updateProject, 
                 // User selected something that isn't in the list? Unlikely but safe check
             }
 
-            const response = await fetch('http://127.0.0.1:3001/api/ai/generate-email', {
+            const baseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://127.0.0.1:3001' : '';
+            const response = await fetch(`${baseUrl}/api/ai/generate-email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -243,7 +245,8 @@ ${senderName}`;
                 throw new Error("Could not generate email content");
             }
 
-            const response = await fetch('http://127.0.0.1:3001/api/send-email', {
+            const baseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://127.0.0.1:3001' : '';
+            const response = await fetch(`${baseUrl}/api/send-email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
