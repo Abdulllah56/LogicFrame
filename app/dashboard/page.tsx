@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { db } from '@/utils/db'
 import { tools, subscriptions } from '@/utils/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, desc } from 'drizzle-orm'
 import EnhancedToolCard from './components/EnhancedToolCard'
 import StatCard from './components/StatCard'
 import { Activity, CreditCard, Sparkles, Layers } from 'lucide-react'
@@ -20,7 +20,8 @@ export default async function DashboardPage() {
         redirect('/auth/login')
     }
 
-    const [allTools, userSubs] = await Promise.all([
+    // Fetch dashboard data in parallel
+    const [allTools, userSubs, invoiceCountData, projectCountData] = await Promise.all([
         db.query.tools.findMany({
             with: {
                 plans: true,
@@ -30,14 +31,29 @@ export default async function DashboardPage() {
             where: eq(subscriptions.userId, user.id),
             with: {
                 plan: true,
-            }
-        })
+            },
+            orderBy: [desc(subscriptions.updatedAt)]
+        }),
+        supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('projects').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
     ]);
 
     const activeSubsCount = userSubs.filter(s => s.status === 'active').length;
+    const invoiceCount = invoiceCountData.count || 0;
+    const projectCount = projectCountData.count || 0;
+    const totalActivity = invoiceCount + projectCount;
 
-    // Calculate Pro vs Free stats (Mock logic for now if plans data missing)
+    // Calculate Pro vs Free stats
     const proToolCount = userSubs.filter(s => s.status === 'active' && s.plan?.name !== 'Free').length;
+
+    // Billing status based on latest subscription
+    const billingStatus = userSubs.length > 0
+        ? userSubs[0].status.charAt(0).toUpperCase() + userSubs[0].status.slice(1)
+        : 'Inactive';
+
+    // API Usage mock calculation based on activity (realistically would be rows / limit)
+    const usageLimit = 100;
+    const usagePercent = Math.min(Math.round((totalActivity / usageLimit) * 100), 100);
 
     return (
         <div className="space-y-12 max-w-7xl mx-auto">
@@ -48,7 +64,7 @@ export default async function DashboardPage() {
                     Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">{user.user_metadata.full_name?.split(' ')[0] || 'Creator'}</span>
                 </h1>
                 <p className="text-slate-400 mt-2 text-lg max-w-2xl">
-                    Manage your powerful suite of tools. You have <span className="text-white font-semibold">{activeSubsCount} active apps</span> running today.
+                    Manage your powerful suite of tools. You have <span className="text-white font-semibold">{activeSubsCount} active apps</span> and <span className="text-white font-semibold">{totalActivity} items</span> synced today.
                 </p>
             </div>
 
@@ -59,7 +75,7 @@ export default async function DashboardPage() {
                     value={activeSubsCount}
                     icon={Layers}
                     color="cyan"
-                    trend="+1 this week"
+                    trend={`${allTools.length - activeSubsCount} available`}
                     trendUp={true}
                 />
                 <StatCard
@@ -67,19 +83,22 @@ export default async function DashboardPage() {
                     value={proToolCount}
                     icon={Sparkles}
                     color="purple"
+                    trend={`${userSubs.length} total`}
+                    trendUp={userSubs.length > 0}
                 />
                 <StatCard
                     title="API Usage"
-                    value="24%"
+                    value={`${usagePercent}%`}
                     icon={Activity}
                     color="blue"
-                    trend="Normal load"
+                    trend={`${totalActivity} requests`}
+                    trendUp={usagePercent < 80}
                 />
                 <StatCard
                     title="Billing Status"
-                    value="Active"
+                    value={billingStatus}
                     icon={CreditCard}
-                    color="green"
+                    color={billingStatus === 'Active' ? 'green' : (billingStatus === 'Inactive' ? 'neutral' : 'yellow')}
                 />
             </div>
 
@@ -115,8 +134,6 @@ export default async function DashboardPage() {
                         if (routeMap[normalizedSlug]) {
                             href = routeMap[normalizedSlug];
                         }
-
-                        console.log(`Mapping Tool: ${tool.name} | DB Slug: ${tool.slug} | Normalized: ${normalizedSlug} | Result Href: ${href}`);
 
                         return (
                             <EnhancedToolCard
