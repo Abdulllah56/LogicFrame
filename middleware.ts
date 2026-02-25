@@ -17,7 +17,7 @@ export async function middleware(request: NextRequest) {
         '/scopecreep',
         '/invoicechase',
         '/invoicemaker',
-        '/Object-Extractor',
+        '/object-extractor',
         '/screenshotbeautifier',
     ];
 

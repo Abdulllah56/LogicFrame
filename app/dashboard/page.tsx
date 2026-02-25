@@ -128,7 +128,7 @@ export default async function DashboardPage() {
                             'invoicechase': '/invoicechase',
                             'invoicemaker': '/invoicemaker',
                             'screenshotbeautifier': '/screenshotbeautifier',
-                            'objectextractor': '/Object-Extractor',
+                            'objectextractor': '/object-extractor',
                         };
 
                         if (routeMap[normalizedSlug]) {
