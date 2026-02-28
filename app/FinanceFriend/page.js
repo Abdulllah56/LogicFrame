@@ -1,12 +1,9 @@
-import React from 'react'
 import Dashboard from './dashboard/page'
 
-const FinanceFriendPage = async () => {
+export default async function FinanceFriendPage() {
   return (
     <div>
       <Dashboard />
     </div>
   )
 }
-
-export default FinanceFriendPage
