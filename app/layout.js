@@ -61,6 +61,7 @@ export default function RootLayout({ children }) {
         <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <script src="https://cdn.jsdelivr.net/npm/colorthief@2.4.0/dist/color-thief.umd.js" defer></script>
+        <script src="https://analytics.ahrefs.com/analytics.js" data-key="7QyZ7eBK2hVqVvZDA+NbdA" async></script>
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
