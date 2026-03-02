@@ -16,6 +16,11 @@ export const metadata = {
   description:
     "LogicFrame helps developers and teams build, deploy, and scale modern apps faster with AI-powered tools and analytics.",
   keywords: "LogicFrame, SaaS, developer tools, web app, productivity, AI",
+  verification: {
+    other: {
+      'verification': '7QyZ7eBK2hVqVvZDA+NbdA'
+    }
+  },
   icons: {
     icon: [
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },

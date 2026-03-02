@@ -1,0 +1,5 @@
+{
+  "name": "AI Image Object Extractor",
+  "description": "An advanced image editing tool that allows users to upload any image and extract individual objects with a single click. Transform static images into fully editable compositions by selecting, moving, resizing, and manipulating each element as a separate layer.",
+  "requestFramePermissions": []
+}
