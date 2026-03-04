@@ -11,14 +11,10 @@ export async function middleware(request: NextRequest) {
 
     // Protected Routes Pattern
     // Adjust this pattern to match your app's structure
+    // Only the personal dashboard requires login.
+    // All tools are publicly accessible so visitors see the UI immediately.
     const protectedPaths = [
         '/dashboard',
-        '/financefriend',
-        '/scopecreep',
-        '/invoicechase',
-        '/invoicemaker',
-        '/object-extractor',
-        '/screenshotbeautifier',
     ];
 
     const isProtected = protectedPaths.some((path) =>
