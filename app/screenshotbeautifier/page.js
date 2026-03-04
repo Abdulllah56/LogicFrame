@@ -3,14 +3,35 @@ import React, { useRef, useEffect, useState } from "react";
 import CanvasArea from "./components/CanvasArea";
 import ControlsPanel from "./components/ControlsPanel";
 import { initBeautifier } from "./lib/beautifier";
+import { useGuestLimit } from "@/utils/useGuestLimit";
+import { GuestLimitModal, GuestUsageBanner } from "@/app/components/GuestLimitModal";
 
 export default function Page() {
   const canvasRef = useRef(null);
   const [theme, setTheme] = useState('dark');
 
+  const { isGuest, usesLeft, limit, tryUse, showModal, closeModal } = useGuestLimit('screenshotbeautifier');
+
   useEffect(() => {
     initBeautifier(canvasRef);
   }, []);
+
+  // Intercept the native export button click to apply the guest limit
+  useEffect(() => {
+    const exportBtn = document.getElementById("export-btn");
+    if (!exportBtn) return;
+
+    const handler = (e) => {
+      if (!tryUse()) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      }
+    };
+
+    // Use capture=true so our handler runs before beautifier.js listener
+    exportBtn.addEventListener("click", handler, true);
+    return () => exportBtn.removeEventListener("click", handler, true);
+  }, [tryUse]);
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -18,6 +39,9 @@ export default function Page() {
 
   return (
     <div className={theme}>
+      <GuestLimitModal open={showModal} onClose={closeModal} toolName="Screenshot Beautifier" usesLeft={usesLeft} limit={limit} />
+      <GuestUsageBanner isGuest={isGuest} usesLeft={usesLeft} limit={limit} toolName="export" />
+
       <div className="fixed inset-0 bg-[#f8fafc] dark:bg-[#0f1729] transition-colors duration-300 z-[-2]"></div>
 
       <div className="fixed inset-0 bg-gradient-radial from-[rgba(0,217,255,0.05)] from-0% to-transparent to-50% opacity-100 dark:from-[rgba(0,217,255,0.08)] dark:via-[rgba(0,217,255,0.06)] z-[-1]"></div>
@@ -79,3 +103,4 @@ export default function Page() {
     </div>
   );
 }
+

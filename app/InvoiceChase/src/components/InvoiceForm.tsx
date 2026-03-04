@@ -9,9 +9,10 @@ import { supabase } from "../integrations/supabase/client";
 
 interface InvoiceFormProps {
   onInvoiceCreated: () => void;
+  tryUse?: () => boolean;
 }
 
-export const InvoiceForm = ({ onInvoiceCreated }: InvoiceFormProps) => {
+export const InvoiceForm = ({ onInvoiceCreated, tryUse }: InvoiceFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -45,6 +46,10 @@ export const InvoiceForm = ({ onInvoiceCreated }: InvoiceFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Guest usage gate
+    if (tryUse && !tryUse()) return;
+
     setIsSubmitting(true);
 
     try {

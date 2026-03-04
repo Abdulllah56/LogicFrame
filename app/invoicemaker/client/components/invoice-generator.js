@@ -6,6 +6,8 @@ import { Textarea } from './ui/textarea';
 import { Card } from './ui/card';
 import { useToast } from '../hooks/use-toast';
 import { TemplatePicker } from './template-picker';
+import { useGuestLimit } from '@/utils/useGuestLimit';
+import { GuestLimitModal, GuestUsageBanner } from '@/app/components/GuestLimitModal';
 
 export function InvoiceGenerator({ initialData, onSave }) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -36,6 +38,7 @@ export function InvoiceGenerator({ initialData, onSave }) {
 
   const { toast } = useToast();
   const logoInputRef = useRef(null);
+  const { isGuest, usesLeft, limit, tryUse, showModal, closeModal } = useGuestLimit('invoicemaker');
 
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];
@@ -80,6 +83,7 @@ export function InvoiceGenerator({ initialData, onSave }) {
   };
 
   const handleDownload = () => {
+    if (!tryUse()) return;
     setIsPickerOpen(true);
   };
 
@@ -94,17 +98,19 @@ export function InvoiceGenerator({ initialData, onSave }) {
   };
 
   const currentStyle = {
-      container: 'bg-white',
-      header: 'bg-gradient-to-r from-blue-600 to-blue-800 text-white p-8',
-      accent: 'text-blue-600',
-      button: 'bg-blue-600 hover:bg-blue-700'
-    };
+    container: 'bg-white',
+    header: 'bg-gradient-to-r from-blue-600 to-blue-800 text-white p-8',
+    accent: 'text-blue-600',
+    button: 'bg-blue-600 hover:bg-blue-700'
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
+      <GuestLimitModal open={showModal} onClose={closeModal} toolName="InvoiceMaker" usesLeft={usesLeft} limit={limit} />
+      <GuestUsageBanner isGuest={isGuest} usesLeft={usesLeft} limit={limit} toolName="PDF download" />
       {isPickerOpen && (
         <TemplatePicker
-          invoice={{...invoiceData, subtotal: calculateSubtotal(), taxAmount: calculateTax(), total: calculateTotal()}}
+          invoice={{ ...invoiceData, subtotal: calculateSubtotal(), taxAmount: calculateTax(), total: calculateTotal() }}
           onGenerate={handleGeneratePdf}
           onClose={() => setIsPickerOpen(false)}
         />
@@ -113,9 +119,9 @@ export function InvoiceGenerator({ initialData, onSave }) {
       <Card className="max-w-4xl mx-auto mb-6 p-4">
         <div className="flex flex-wrap gap-4 items-center justify-between">
           <div className="flex gap-2">
-             {/* The template buttons are removed */}
+            {/* The template buttons are removed */}
           </div>
-          
+
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -151,25 +157,25 @@ export function InvoiceGenerator({ initialData, onSave }) {
             <div className="text-right">
               <Input
                 value={invoiceData.invoiceNumber}
-                onChange={(e) => setInvoiceData({...invoiceData, invoiceNumber: e.target.value})}
+                onChange={(e) => setInvoiceData({ ...invoiceData, invoiceNumber: e.target.value })}
                 className="bg-transparent border-b text-right text-xl font-semibold mb-2"
               />
               <div className="text-sm opacity-90">
                 <div>
-                  Date: 
+                  Date:
                   <Input
                     type="date"
                     value={invoiceData.date}
-                    onChange={(e) => setInvoiceData({...invoiceData, date: e.target.value})}
+                    onChange={(e) => setInvoiceData({ ...invoiceData, date: e.target.value })}
                     className="bg-transparent border-b"
                   />
                 </div>
                 <div>
-                  Due: 
+                  Due:
                   <Input
                     type="date"
                     value={invoiceData.dueDate}
-                    onChange={(e) => setInvoiceData({...invoiceData, dueDate: e.target.value})}
+                    onChange={(e) => setInvoiceData({ ...invoiceData, dueDate: e.target.value })}
                     className="bg-transparent border-b"
                   />
                 </div>
@@ -184,58 +190,58 @@ export function InvoiceGenerator({ initialData, onSave }) {
             <h3 className={`font-bold mb-2 ${currentStyle.accent}`}>FROM:</h3>
             <Input
               value={invoiceData.from.name}
-              onChange={(e) => setInvoiceData({...invoiceData, from: {...invoiceData.from, name: e.target.value}})}
+              onChange={(e) => setInvoiceData({ ...invoiceData, from: { ...invoiceData.from, name: e.target.value } })}
               className="mb-2"
               placeholder="Your Business Name"
             />
             <Input
               value={invoiceData.from.email}
-              onChange={(e) => setInvoiceData({...invoiceData, from: {...invoiceData.from, email: e.target.value}})}
+              onChange={(e) => setInvoiceData({ ...invoiceData, from: { ...invoiceData.from, email: e.target.value } })}
               className="mb-2"
               placeholder="your@email.com"
             />
             <Input
               value={invoiceData.from.address}
-              onChange={(e) => setInvoiceData({...invoiceData, from: {...invoiceData.from, address: e.target.value}})}
+              onChange={(e) => setInvoiceData({ ...invoiceData, from: { ...invoiceData.from, address: e.target.value } })}
               className="mb-2"
               placeholder="Street Address"
             />
             <Input
               value={invoiceData.from.city}
-              onChange={(e) => setInvoiceData({...invoiceData, from: {...invoiceData.from, city: e.target.value}})}
+              onChange={(e) => setInvoiceData({ ...invoiceData, from: { ...invoiceData.from, city: e.target.value } })}
               className="mb-2"
               placeholder="City, Country"
             />
             <Input
               value={invoiceData.from.phone}
-              onChange={(e) => setInvoiceData({...invoiceData, from: {...invoiceData.from, phone: e.target.value}})}
+              onChange={(e) => setInvoiceData({ ...invoiceData, from: { ...invoiceData.from, phone: e.target.value } })}
               placeholder="Phone Number"
             />
           </div>
-          
+
           <div>
             <h3 className={`font-bold mb-2 ${currentStyle.accent}`}>TO:</h3>
             <Input
               value={invoiceData.to.name}
-              onChange={(e) => setInvoiceData({...invoiceData, to: {...invoiceData.to, name: e.target.value}})}
+              onChange={(e) => setInvoiceData({ ...invoiceData, to: { ...invoiceData.to, name: e.target.value } })}
               className="mb-2"
               placeholder="Client Name"
             />
             <Input
               value={invoiceData.to.email}
-              onChange={(e) => setInvoiceData({...invoiceData, to: {...invoiceData.to, email: e.target.value}})}
+              onChange={(e) => setInvoiceData({ ...invoiceData, to: { ...invoiceData.to, email: e.target.value } })}
               className="mb-2"
               placeholder="client@email.com"
             />
             <Input
               value={invoiceData.to.address}
-              onChange={(e) => setInvoiceData({...invoiceData, to: {...invoiceData.to, address: e.target.value}})}
+              onChange={(e) => setInvoiceData({ ...invoiceData, to: { ...invoiceData.to, address: e.target.value } })}
               className="mb-2"
               placeholder="Client Address"
             />
             <Input
               value={invoiceData.to.city}
-              onChange={(e) => setInvoiceData({...invoiceData, to: {...invoiceData.to, city: e.target.value}})}
+              onChange={(e) => setInvoiceData({ ...invoiceData, to: { ...invoiceData.to, city: e.target.value } })}
               placeholder="Client City, Country"
             />
           </div>
@@ -299,7 +305,7 @@ export function InvoiceGenerator({ initialData, onSave }) {
               ))}
             </tbody>
           </table>
-          
+
           <Button
             variant="ghost"
             onClick={addItem}
@@ -320,11 +326,11 @@ export function InvoiceGenerator({ initialData, onSave }) {
               </div>
               <div className="flex justify-between py-2 border-b border-gray-200">
                 <span className="flex items-center gap-2">
-                  Tax 
+                  Tax
                   <Input
                     type="number"
                     value={invoiceData.taxRate}
-                    onChange={(e) => setInvoiceData({...invoiceData, taxRate: parseFloat(e.target.value) || 0})}
+                    onChange={(e) => setInvoiceData({ ...invoiceData, taxRate: parseFloat(e.target.value) || 0 })}
                     className="w-16 text-center"
                     min="0"
                     step="0.1"
@@ -345,7 +351,7 @@ export function InvoiceGenerator({ initialData, onSave }) {
           <h3 className="font-semibold mb-2">Notes:</h3>
           <Textarea
             value={invoiceData.notes}
-            onChange={(e) => setInvoiceData({...invoiceData, notes: e.target.value})}
+            onChange={(e) => setInvoiceData({ ...invoiceData, notes: e.target.value })}
             className="w-full"
             rows={3}
             placeholder="Payment terms, thank you message, etc."

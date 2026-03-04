@@ -10,6 +10,8 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { User, Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { SEO } from "../components/SEO";
+import { useGuestLimit } from "@/utils/useGuestLimit";
+import { GuestLimitModal, GuestUsageBanner } from "@/app/components/GuestLimitModal";
 
 interface Invoice {
   id: number;
@@ -32,25 +34,21 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
+  const { isGuest, usesLeft, limit, tryUse, showModal, closeModal } = useGuestLimit('invoicechase');
+
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-
-      if (!session) {
-        window.location.href = '/auth/login';
-      }
+      // No redirect for guests — let them view the tool
     });
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-
-      if (!session) {
-        window.location.href = '/auth/login';
-      }
+      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -153,7 +151,8 @@ const Index = () => {
 
   const stats = calculateStats();
 
-  if (isLoading || !user) {
+  // Show a loading spinner only briefly while checking session
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading">
         <div className="text-muted-foreground">Loading...</div>
@@ -163,6 +162,8 @@ const Index = () => {
 
   return (
     <>
+      <GuestLimitModal open={showModal} onClose={closeModal} toolName="InvoiceChase" usesLeft={usesLeft} limit={limit} />
+      <GuestUsageBanner isGuest={isGuest} usesLeft={usesLeft} limit={limit} toolName="invoice creation" />
       <SEO
         title="Dashboard"
         description="Manage your invoices, track payments, and send automated reminders. View your payment statistics and overdue invoices in one place."
@@ -244,6 +245,7 @@ const Index = () => {
                   fetchInvoices();
                   setShowForm(false);
                 }}
+                tryUse={tryUse}
               />
             </section>
           )}

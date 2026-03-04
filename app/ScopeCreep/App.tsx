@@ -7,6 +7,8 @@ import ScopeWizard from './components/ScopeWizard';
 import Settings from './components/Settings';
 import { Project, UserSettings } from './types';
 import { createClient } from '@/utils/supabase/client';
+import { useGuestLimit } from '@/utils/useGuestLimit';
+import { GuestLimitModal, GuestUsageBanner } from '@/app/components/GuestLimitModal';
 
 const supabase = createClient();
 
@@ -17,6 +19,8 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+
+  const { isGuest, usesLeft, limit, tryUse, showModal, closeModal } = useGuestLimit('scopecreep');
 
   // API Base URL
   const API_URL = '/api';
@@ -53,8 +57,7 @@ const App: React.FC = () => {
       } else {
         setCurrentUser(null);
         setProjects([]);
-        // Redirect to main app login
-        window.location.href = '/auth/login';
+        // Guest mode — don't redirect, let them view the app
       }
     });
 
@@ -111,6 +114,9 @@ const App: React.FC = () => {
   };
 
   const handleSaveNewProject = (newProject: Project) => {
+    // Guest limit gate
+    if (!tryUse()) return;
+
     // Ensure ID is a valid UUID for the DB
     const projectWithUuid = {
       ...newProject,
@@ -121,8 +127,8 @@ const App: React.FC = () => {
 
     // Optimistic Update
     setProjects(prev => [projectWithUuid, ...prev]);
-    // Sync to DB
-    saveProjectToBackend(projectWithUuid);
+    // Sync to DB (only when logged in)
+    if (currentUser) saveProjectToBackend(projectWithUuid);
   };
 
   const updateCurrentUserProject = (updatedProject: Project) => {
@@ -155,14 +161,10 @@ const App: React.FC = () => {
     );
   }
 
-  if (!currentUser) {
-    // Middleware already redirects to /auth/login, but just in case:
-    window.location.href = '/auth/login';
-    return null;
-  }
-
   return (
     <>
+      <GuestLimitModal open={showModal} onClose={closeModal} toolName="ScopeCreep" usesLeft={usesLeft} limit={limit} />
+      <GuestUsageBanner isGuest={isGuest} usesLeft={usesLeft} limit={limit} toolName="project creation" />
       <div className="fixed inset-0 bg-gradient-radial from-[rgba(0,217,255,0.08)] from-0% to-transparent to-50% via-[rgba(0,217,255,0.06)] via-80% z-[-1] pointer-events-none"></div>
       <div className="fixed w-[300px] h-[300px] bg-[rgba(0,217,255,0.3)] rounded-full blur-[80px] opacity-30 top-[10%] left-[10%] animate-float z-[-1] pointer-events-none"></div>
       <div className="fixed w-[400px] h-[400px] bg-[rgba(0,217,255,0.2)] rounded-full blur-[80px] opacity-30 bottom-[10%] right-[10%] animate-float animation-delay-7000 z-[-1] pointer-events-none"></div>

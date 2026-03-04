@@ -160,7 +160,7 @@ const Tools = () => {
           desc="Advanced AI-powered editor for object detection, text extraction (OCR), and intelligent background removal."
           icon={Sparkles}
           status="live"
-          href="/ImageEditor"
+          href="/object-extractor"
           features={["Object Detection", "Text OCR", "Background Removal", "AI Powered"]}
         />
 

@@ -32,6 +32,8 @@ import {
   SelectValue,
 } from "../../components/ui/select";
 import { type Expense, type Category } from "../../shared/schema";
+import { useGuestLimit } from "@/utils/useGuestLimit";
+import { GuestLimitModal, GuestUsageBanner } from "@/app/components/GuestLimitModal";
 
 interface AddExpenseDialogProps {
   open: boolean;
@@ -53,6 +55,8 @@ export function AddExpenseDialog({ open, onOpenChange }: AddExpenseDialogProps) 
   const { toast } = useToast();
   const { data: categoriesData } = useCategories();
   const [isProcessingQuickInput, setIsProcessingQuickInput] = useState(false);
+
+  const { isGuest, usesLeft, limit, tryUse, showModal, closeModal } = useGuestLimit('financefriend');
 
   const currencies = [
     { value: "USD", symbol: "$" },
@@ -98,6 +102,9 @@ export function AddExpenseDialog({ open, onOpenChange }: AddExpenseDialogProps) 
   };
 
   const onSubmit = (data: ExpenseFormValues) => {
+    // Guest usage gate
+    if (!tryUse()) return;
+
     try {
       const amount = parseAmount(data.amount);
       const categoryId = parseInt(data.categoryId, 10);
@@ -138,122 +145,126 @@ export function AddExpenseDialog({ open, onOpenChange }: AddExpenseDialogProps) 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-white text-black">
-        <DialogHeader>
-          <DialogTitle className="text-black">Add New Expense</DialogTitle>
-          <DialogDescription className="text-gray-600">
-            Enter the details of your expense
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <GuestLimitModal open={showModal} onClose={closeModal} toolName="FinanceFriend" usesLeft={usesLeft} limit={limit} />
+      <GuestUsageBanner isGuest={isGuest} usesLeft={usesLeft} limit={limit} toolName="expense" />
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md bg-white text-black">
+          <DialogHeader>
+            <DialogTitle className="text-black">Add New Expense</DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Enter the details of your expense
+            </DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="quickInput" className="text-black">Quick Input</Label>
-            <SmartExpenseInput
-              placeholder="e.g. Coffee $4.50"
-              onChange={handleQuickInputChangeWrapped}
-              id="quickInput"
-              className="bg-white text-black placeholder:text-gray-400"
-            />
-            <p className="text-xs text-gray-500">
-              Try typing &quot;Coffee $4.50&quot; for automatic categorization
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="amount" className="text-black">Amount</Label>
-              <div className="relative">
-                <Controller
-                  name="currency"
-                  control={control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="absolute left-0 top-1/2 transform -translate-y-1/2 w-16 h-full rounded-r-none border-r-0 bg-gray-100 text-black">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white text-black" position="popper" sideOffset={5}>
-                        {currencies.map((currency) => (
-                          <SelectItem key={currency.value} value={currency.value}>
-                            {currency.symbol}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
+              <Label htmlFor="quickInput" className="text-black">Quick Input</Label>
+              <SmartExpenseInput
+                placeholder="e.g. Coffee $4.50"
+                onChange={handleQuickInputChangeWrapped}
+                id="quickInput"
+                className="bg-white text-black placeholder:text-gray-400"
+              />
+              <p className="text-xs text-gray-500">
+                Try typing &quot;Coffee $4.50&quot; for automatic categorization
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="amount" className="text-black">Amount</Label>
+                <div className="relative">
+                  <Controller
+                    name="currency"
+                    control={control}
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger className="absolute left-0 top-1/2 transform -translate-y-1/2 w-16 h-full rounded-r-none border-r-0 bg-gray-100 text-black">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white text-black" position="popper" sideOffset={5}>
+                          {currencies.map((currency) => (
+                            <SelectItem key={currency.value} value={currency.value}>
+                              {currency.symbol}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  <Input
+                    id="amount"
+                    placeholder="0.00"
+                    className="pl-16 bg-white text-black placeholder:text-gray-400 border-gray-300"
+                    {...register("amount")}
+                  />
+                </div>
+                {errors.amount && (
+                  <p className="text-sm text-red-500">{errors.amount.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="date" className="text-black">Date</Label>
                 <Input
-                  id="amount"
-                  placeholder="0.00"
-                  className="pl-16 bg-white text-black placeholder:text-gray-400 border-gray-300"
-                  {...register("amount")}
+                  id="date"
+                  type="date"
+                  className="bg-white text-black border-gray-300"
+                  {...register("date")}
                 />
               </div>
-              {errors.amount && (
-                <p className="text-sm text-red-500">{errors.amount.message}</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category" className="text-black">Category</Label>
+              <Controller
+                name="categoryId"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value?.toString()}
+                  >
+                    <SelectTrigger className="bg-white text-black border-gray-300" id="category">
+                      <SelectValue placeholder="Select a category" className="text-gray-400" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white text-black" position="popper" sideOffset={5}>
+                      {categories.map((category: Category) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.categoryId && (
+                <p className="text-sm text-red-500">{errors.categoryId.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="date" className="text-black">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                className="bg-white text-black border-gray-300"
-                {...register("date")}
+              <Label htmlFor="description" className="text-black">Note (optional)</Label>
+              <Textarea
+                id="description"
+                placeholder="Add a note..."
+                className="bg-white text-black placeholder:text-gray-400 border-gray-300"
+                {...register("description")}
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="category" className="text-black">Category</Label>
-            <Controller
-              name="categoryId"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value?.toString()}
-                >
-                  <SelectTrigger className="bg-white text-black border-gray-300" id="category">
-                    <SelectValue placeholder="Select a category" className="text-gray-400" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white text-black" position="popper" sideOffset={5}>
-                    {categories.map((category: Category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.categoryId && (
-              <p className="text-sm text-red-500">{errors.categoryId.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description" className="text-black">Note (optional)</Label>
-            <Textarea
-              id="description"
-              placeholder="Add a note..."
-              className="bg-white text-black placeholder:text-gray-400 border-gray-300"
-              {...register("description")}
-            />
-          </div>
-
-          <DialogFooter className="sm:justify-between">
-            <Button type="button" variant="outline" onClick={handleClose} className="border-gray-300 text-black hover:bg-gray-100">
-              Cancel
-            </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white" disabled={isPending}>
-              {isPending ? "Saving..." : "Save Expense"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+            <DialogFooter className="sm:justify-between">
+              <Button type="button" variant="outline" onClick={handleClose} className="border-gray-300 text-black hover:bg-gray-100">
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white" disabled={isPending}>
+                {isPending ? "Saving..." : "Save Expense"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
