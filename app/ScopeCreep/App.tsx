@@ -19,9 +19,7 @@ const App: React.FC = () => {
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
 
   // API Base URL
-  const API_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://127.0.0.1:3001/api'
-    : '/api';
+  const API_URL = '/api';
 
   // Load Supabase Auth Session
   useEffect(() => {
@@ -144,6 +142,7 @@ const App: React.FC = () => {
   const effectiveSettings = userSettings || {
     name: currentUser?.name || '',
     email: currentUser?.email || '',
+    businessName: '',
     defaultHourlyRate: 100,
     currency: 'USD'
   };
