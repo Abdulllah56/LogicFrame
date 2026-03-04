@@ -178,7 +178,7 @@ const App: React.FC = () => {
                 <Dashboard
                   projects={projects}
                   onLogout={handleLogout}
-                  userName={currentUser.name || currentUser.email}
+                  userName={currentUser?.name || currentUser?.email}
                 />
               }
             />
