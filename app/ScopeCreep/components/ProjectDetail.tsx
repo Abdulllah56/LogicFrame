@@ -8,9 +8,10 @@ interface ProjectDetailProps {
     projects: Project[];
     updateProject: (project: Project) => void;
     userSettings: UserSettings;
+    requireAuth: (featureName: string) => boolean;
 }
 
-const ProjectDetail: React.FC<ProjectDetailProps> = ({ projects, updateProject, userSettings }) => {
+const ProjectDetail: React.FC<ProjectDetailProps> = ({ projects, updateProject, userSettings, requireAuth }) => {
     const { slug } = useParams<{ slug: string }>();
     const location = useLocation();
 
@@ -92,6 +93,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projects, updateProject, 
 
     const handleAiGenerate = async () => {
         if (!project) return;
+        if (!requireAuth('AI Custom Email Generator')) return; // Auth gate
         setIsAiGenerating(true);
         setSendResult('idle');
         try {

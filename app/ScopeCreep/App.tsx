@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
 
-  const { isGuest, usesLeft, limit, tryUse, showModal, closeModal } = useGuestLimit('scopecreep');
+  const { isGuest, usesLeft, limit, tryUse, requireAuth, showModal, authOnlyFeature, closeModal } = useGuestLimit('scopecreep');
 
   // API Base URL
   const API_URL = '/api';
@@ -163,7 +163,7 @@ const App: React.FC = () => {
 
   return (
     <>
-      <GuestLimitModal open={showModal} onClose={closeModal} toolName="ScopeCreep" usesLeft={usesLeft} limit={limit} />
+      <GuestLimitModal open={showModal} onClose={closeModal} toolName="ScopeCreep" usesLeft={usesLeft} limit={limit} authOnlyFeature={authOnlyFeature} />
       <GuestUsageBanner isGuest={isGuest} usesLeft={usesLeft} limit={limit} toolName="project creation" />
       <div className="fixed inset-0 bg-gradient-radial from-[rgba(0,217,255,0.08)] from-0% to-transparent to-50% via-[rgba(0,217,255,0.06)] via-80% z-[-1] pointer-events-none"></div>
       <div className="fixed w-[300px] h-[300px] bg-[rgba(0,217,255,0.3)] rounded-full blur-[80px] opacity-30 top-[10%] left-[10%] animate-float z-[-1] pointer-events-none"></div>
@@ -189,6 +189,7 @@ const App: React.FC = () => {
                   projects={projects}
                   updateProject={updateCurrentUserProject}
                   userSettings={effectiveSettings}
+                  requireAuth={requireAuth}
                 />
               }
             />

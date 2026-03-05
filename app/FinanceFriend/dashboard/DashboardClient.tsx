@@ -17,6 +17,8 @@ import { useExpenses, useCategories } from "../client/lib/hooks/useExpenses";
 import { useBudgets } from "../client/lib/hooks/useBudgets";
 import { useGoals } from "../client/lib/hooks/useGoals";
 import { useBills } from "../client/lib/hooks/useBills";
+import { useGuestLimit } from "@/utils/useGuestLimit";
+import { GuestLimitModal, GuestUsageBanner } from "@/app/components/GuestLimitModal";
 
 const RecentTransactions = dynamic(() => import("../components/dashboard/RecentTransactions").then(mod => mod.RecentTransactions), { ssr: false, loading: () => <div className="h-24 flex items-center justify-center">Loading...</div> });
 const SavingsGoals = dynamic(() => import("../components/dashboard/SavingsGoals").then(mod => mod.SavingsGoals), { ssr: false, loading: () => <div className="h-24 flex items-center justify-center">Loading...</div> });
@@ -33,6 +35,8 @@ function DashboardContent({ initialSummary }: { initialSummary: any }) {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showSetBudget, setShowSetBudget] = useState(false);
   const [period, setPeriod] = useState("day");
+
+  const { isGuest, usesLeft, limit, requireAuth, showModal, authOnlyFeature, closeModal } = useGuestLimit('financefriend');
 
   // Fetch live data
   const { data: expenses = [] } = useExpenses();
@@ -158,6 +162,8 @@ function DashboardContent({ initialSummary }: { initialSummary: any }) {
 
   return (
     <div className="flex flex-col min-h-screen bg-transparent">
+      <GuestLimitModal open={showModal} onClose={closeModal} toolName="FinanceFriend" usesLeft={usesLeft} limit={limit} authOnlyFeature={authOnlyFeature} />
+      <GuestUsageBanner isGuest={isGuest} usesLeft={usesLeft} limit={limit} toolName="expense creation" />
       <main className="flex-grow pb-20 md:pb-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -169,7 +175,11 @@ function DashboardContent({ initialSummary }: { initialSummary: any }) {
               <Button
                 variant="outline"
                 className="flex items-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={() => setShowSetBudget(true)}
+                onClick={() => {
+                  if (requireAuth('Budget Management')) {
+                    setShowSetBudget(true);
+                  }
+                }}
               >
                 <span>Set Budget</span>
               </Button>

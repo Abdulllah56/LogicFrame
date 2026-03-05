@@ -8,9 +8,10 @@ interface GuestLimitModalProps {
     toolName: string;
     usesLeft: number;
     limit: number;
+    authOnlyFeature?: string | null;
 }
 
-export function GuestLimitModal({ open, onClose, toolName, usesLeft, limit }: GuestLimitModalProps) {
+export function GuestLimitModal({ open, onClose, toolName, usesLeft, limit, authOnlyFeature }: GuestLimitModalProps) {
     if (!open) return null;
 
     const used = limit - usesLeft;
@@ -21,7 +22,7 @@ export function GuestLimitModal({ open, onClose, toolName, usesLeft, limit }: Gu
             className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
             role="dialog"
             aria-modal="true"
-            aria-label="Free usage limit reached"
+            aria-label={authOnlyFeature ? "Account required" : "Free usage limit reached"}
         >
             {/* Backdrop */}
             <div
@@ -31,36 +32,42 @@ export function GuestLimitModal({ open, onClose, toolName, usesLeft, limit }: Gu
 
             {/* Card */}
             <div className="relative w-full max-w-sm rounded-3xl border border-white/10 bg-[#0a0f1e] shadow-2xl shadow-black/60 overflow-hidden">
-                {/* Glow accent */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-24 bg-[#00D9FF]/20 blur-[60px] pointer-events-none" />
+                {/* Glow accent - purple if auth feature, blue if usage limit */}
+                <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-64 h-24 blur-[60px] pointer-events-none ${authOnlyFeature ? 'bg-purple-500/20' : 'bg-[#00D9FF]/20'}`} />
 
                 <div className="relative p-7 flex flex-col gap-6">
                     {/* Header */}
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2.5 mb-1">
-                            <span className="text-2xl">🔓</span>
+                            <span className="text-2xl">{authOnlyFeature ? '✨' : '🔓'}</span>
                             <h2 className="text-lg font-black text-white tracking-tight">
-                                Free limit reached
+                                {authOnlyFeature ? 'Account Required' : 'Free limit reached'}
                             </h2>
                         </div>
                         <p className="text-sm text-slate-400 leading-relaxed">
-                            You&apos;ve used your <span className="text-white font-semibold">{limit} free {toolName} actions</span>. Create a free account to keep going — no credit card needed.
+                            {authOnlyFeature ? (
+                                <>Create a free account to use <span className="text-white font-semibold">{authOnlyFeature}</span> and unlock unlimited access.{' '} {toolName && `This is a premium feature of ${toolName}.`}</>
+                            ) : (
+                                <>You&apos;ve used your <span className="text-white font-semibold">{limit} free {toolName} actions</span>. Create a free account to keep going — no credit card needed.</>
+                            )}
                         </p>
                     </div>
 
-                    {/* Usage bar */}
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-[11px] uppercase tracking-widest font-black">
-                            <span className="text-slate-500">Usage</span>
-                            <span className="text-[#00D9FF]">{used} / {limit}</span>
+                    {/* Usage bar - only show if NOT a hard-gated feature */}
+                    {!authOnlyFeature && (
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-[11px] uppercase tracking-widest font-black">
+                                <span className="text-slate-500">Usage</span>
+                                <span className="text-[#00D9FF]">{used} / {limit}</span>
+                            </div>
+                            <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
+                                <div
+                                    className="h-full rounded-full bg-gradient-to-r from-[#00D9FF] to-blue-500 transition-all duration-700"
+                                    style={{ width: `${pct}%` }}
+                                />
+                            </div>
                         </div>
-                        <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
-                            <div
-                                className="h-full rounded-full bg-gradient-to-r from-[#00D9FF] to-blue-500 transition-all duration-700"
-                                style={{ width: `${pct}%` }}
-                            />
-                        </div>
-                    </div>
+                    )}
 
                     {/* CTA buttons */}
                     <div className="flex flex-col gap-2.5">

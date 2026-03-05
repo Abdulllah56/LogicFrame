@@ -23,6 +23,7 @@ export function useGuestLimit(tool: string) {
     const [isGuest, setIsGuest] = useState(true);
     const [usesLeft, setUsesLeft] = useState(LIMIT);
     const [showModal, setShowModal] = useState(false);
+    const [authOnlyFeature, setAuthOnlyFeature] = useState<string | null>(null);
 
     useEffect(() => {
         const supabase = createClient();
@@ -51,6 +52,7 @@ export function useGuestLimit(tool: string) {
                 localStorage.removeItem(getKey(tool));
                 setUsesLeft(LIMIT);
                 setShowModal(false);
+                setAuthOnlyFeature(null);
             } else {
                 setIsGuest(true);
                 setUsesLeft(Math.max(0, LIMIT - getCount(tool)));
@@ -72,18 +74,36 @@ export function useGuestLimit(tool: string) {
         if (!isGuest) return true; // logged-in users always pass
         const current = getCount(tool);
         if (current >= LIMIT) {
+            setAuthOnlyFeature(null);
             setShowModal(true);
             return false;
         }
         const next = increment(tool);
         setUsesLeft(Math.max(0, LIMIT - next));
         if (next >= LIMIT) {
+            setAuthOnlyFeature(null);
             setShowModal(true);
         }
         return true;
     }, [isGuest, tool]);
 
-    const closeModal = useCallback(() => setShowModal(false), []);
+    /**
+     * Call before performing an action that requires a registered account (No free uses).
+     * Returns true → action is allowed.
+     * Returns false → action blocked, modal shown indicating account required.
+     */
+    const requireAuth = useCallback((featureName: string): boolean => {
+        if (!isGuest) return true;
+        setAuthOnlyFeature(featureName);
+        setShowModal(true);
+        return false;
+    }, [isGuest]);
 
-    return { isGuest, usesLeft, limit: LIMIT, tryUse, showModal, closeModal };
+    const closeModal = useCallback(() => {
+        setShowModal(false);
+        // We don't reset authOnlyFeature immediately to allow exit animations
+        setTimeout(() => setAuthOnlyFeature(null), 300);
+    }, []);
+
+    return { isGuest, usesLeft, limit: LIMIT, tryUse, requireAuth, showModal, authOnlyFeature, closeModal };
 }

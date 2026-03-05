@@ -210,7 +210,7 @@ export default function App() {
     const [theme, setTheme] = useState<Theme>('dark');
     const [rightPanel, setRightPanel] = useState<'layers' | 'objects'>('layers');
 
-    const { isGuest, usesLeft, limit, tryUse, showModal, closeModal } = useGuestLimit('object-extractor');
+    const { isGuest, usesLeft, limit, tryUse, requireAuth, showModal, authOnlyFeature, closeModal } = useGuestLimit('object-extractor');
 
     const [selectionMask, setSelectionMask] = useState<Uint8Array | null>(null);
     const [tolerance, setTolerance] = useState(40);
@@ -608,8 +608,10 @@ export default function App() {
         const canvas = mainCanvasRef.current;
         if (!canvas) return;
         const coords = getCanvasCoordinates(e, canvas);
-        if (selectionMode === 'ai' && hoveredObjectIdx !== null) handleQuickExtract(hoveredObjectIdx);
-        else if (selectionMode === 'color') {
+        if (selectionMode === 'ai' && hoveredObjectIdx !== null) {
+            if (!requireAuth('AI Object Extraction')) return;
+            handleQuickExtract(hoveredObjectIdx);
+        } else if (selectionMode === 'color') {
             const data = prepareSourceCanvas(); if (!data) return;
             setIsProcessing(true);
             const startIdx = (Math.round(coords.y) * canvas.width + Math.round(coords.x)) * 4;
@@ -688,7 +690,7 @@ export default function App() {
 
     return (
         <div className={`min-h-screen ${theme === 'dark' ? 'bg-[#0B1120] text-slate-100' : 'bg-gray-50 text-gray-900'} flex flex-col font-sans selection:bg-cyan-500/30`}>
-            <GuestLimitModal open={showModal} onClose={closeModal} toolName="Object Extractor" usesLeft={usesLeft} limit={limit} />
+            <GuestLimitModal open={showModal} onClose={closeModal} toolName="Object Extractor" usesLeft={usesLeft} limit={limit} authOnlyFeature={authOnlyFeature} />
             <GuestUsageBanner isGuest={isGuest} usesLeft={usesLeft} limit={limit} toolName="export" />
             <header className="h-18 border-b border-slate-800/60 bg-[#0B1120]/80 backdrop-blur-md flex items-center justify-between px-6 z-20 py-3">
                 <div className="flex items-center space-x-3">

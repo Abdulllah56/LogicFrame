@@ -191,7 +191,11 @@ const Index = () => {
                 <Button
                   variant="outline"
                   size="lg"
-                  onClick={() => navigate("/send-email")}
+                  onClick={() => {
+                    if (requireAuth('Automated Email Reminders')) {
+                      navigate("/send-email");
+                    }
+                  }}
                   aria-label="Send email reminder"
                 >
                   <Mail className="mr-2 h-5 w-5" aria-hidden="true" />
