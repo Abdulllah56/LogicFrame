@@ -12,6 +12,7 @@
     "serve-scope:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./app/scopecreep/start-server.ps1"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.0.1",
     "@google/genai": "^1.30.0",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
