@@ -5,8 +5,8 @@ import { type NextRequest, NextResponse } from "next/server";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export const createClient = (request: NextRequest) => {
-    // Create an unmodified response
+export const updateSession = async (request: NextRequest) => {
+    // This `response` will be updated if `supabase.auth.getUser()` refreshes the session
     let response = NextResponse.next({
         request: {
             headers: request.headers,
@@ -34,6 +34,8 @@ export const createClient = (request: NextRequest) => {
         },
     );
 
-    // IMPORTANT: Returning both supabase and response to maintain compatibility with root middleware logic
-    return { supabase, response }
+    // This refreshes the session if it's expired - critical for persistence
+    const { data: { user } } = await supabase.auth.getUser();
+
+    return { supabase, response, user };
 };

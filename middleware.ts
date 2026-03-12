@@ -1,18 +1,12 @@
 
-import { type NextRequest } from "next/server";
-import { createClient } from "@/utils/supabase/middleware";
+import { type NextRequest, NextResponse } from "next/server";
+import { updateSession } from "@/utils/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-    const { supabase, response } = createClient(request);
-
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    // updateSession handles the session refresh logic and returns the updated user and response
+    const { user, response } = await updateSession(request);
 
     // Protected Routes Pattern
-    // Adjust this pattern to match your app's structure
-    // Only the personal dashboard requires login.
-    // All tools are publicly accessible so visitors see the UI immediately.
     const protectedPaths = [
         '/dashboard',
     ];
@@ -22,7 +16,8 @@ export async function middleware(request: NextRequest) {
     );
 
     if (isProtected && !user) {
-        return Response.redirect(new URL("/auth/login", request.url));
+        // When redirecting, we should stay consistent with the login path
+        return NextResponse.redirect(new URL("/auth/login", request.url));
     }
 
     return response;
@@ -36,7 +31,6 @@ export const config = {
          * - _next/image (image optimization files)
          * - favicon.ico (favicon file)
          * - auth (auth routes)
-         * Feel free to modify this pattern to include more paths.
          */
         "/((?!_next/static|_next/image|favicon.ico|auth|api).*)",
     ],
