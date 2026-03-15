@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoveHorizontal, ShieldCheck, CreditCard, AlertCircle, FileText, Check } from 'lucide-react';
+import { MoveHorizontal, ShieldCheck, CreditCard, FileText, Check } from 'lucide-react';
 import Logo from './ui/Logo';
 
 const TransformationSection = () => {
@@ -165,100 +165,77 @@ const TransformationSection = () => {
                style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
             >
                <div className="absolute inset-0 flex items-center justify-center bg-[#e5e7eb]">
-                  {/* Toolbar Mockup */}
-                  <div className="absolute top-0 left-0 right-0 h-12 bg-[#f3f4f6] border-b border-[#d1d5db] flex items-center px-4 gap-4 shadow-sm z-10">
-                     <div className="flex gap-1">
-                        <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                        <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                        <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                     </div>
-                     <div className="h-6 w-px bg-gray-300 mx-2"></div>
-                     <div className="flex gap-2">
-                        <div className="w-20 h-6 bg-white border border-gray-300 rounded flex items-center px-2 text-[10px] text-gray-600 font-serif">Times New Roman</div>
-                        <div className="w-8 h-6 bg-white border border-gray-300 rounded flex items-center justify-center text-[10px] text-gray-600">12</div>
-                        <div className="font-bold text-gray-700 px-1 font-serif">B</div>
-                        <div className="italic text-gray-700 px-1 font-serif">I</div>
-                        <div className="underline text-gray-700 px-1 font-serif">U</div>
-                     </div>
+                  {/* Simple Header */}
+                  <div className="absolute top-0 left-0 right-0 h-10 bg-white border-b border-gray-200 flex items-center px-4 shadow-sm z-10">
+                     <div className="text-xs text-gray-500">Invoice - Created on Google Docs</div>
                   </div>
 
                   {/* The "Document" */}
-                  <div className="relative w-[340px] md:w-[420px] h-[500px] bg-white text-black shadow-xl mt-12 p-8 font-serif">
-
-                     {/* Blinking Cursor */}
-                     <div className="absolute top-8 left-8 w-px h-4 bg-black animate-pulse"></div>
+                  <div className="relative w-[340px] md:w-[420px] h-[500px] bg-white text-black shadow-xl mt-8 p-8">
 
                      {/* Content */}
-                     <div className="mb-8">
-                        <h1 className="text-2xl font-bold underline mb-4">INVOICE</h1>
-                        <p className="text-sm mb-1">From: Alex (Freelancer)</p>
-                        <p className="text-sm mb-1 text-blue-700 underline">alex_design_99@gmail.com</p>
-                        <p className="text-sm text-gray-500 italic">&quot;Making your dreams come true&quot;</p>
-                     </div>
-
-                     <div className="mb-8">
-                        <p className="text-sm font-bold">To: John</p>
-                        <p className="text-sm text-gray-400">(Forgot the company address, will add later)</p>
-                     </div>
-
-                     {/* Bad Table */}
-                     <div className="border border-black mb-8">
-                        <div className="flex border-b border-black font-bold text-sm bg-gray-100">
-                           <div className="w-2/3 p-1 border-r border-black">Item</div>
-                           <div className="w-1/3 p-1 text-right">Cost</div>
+                     <div className="mb-6">
+                        <h1 className="text-xl font-bold mb-4">INVOICE</h1>
+                        <div className="space-y-1 text-sm mb-4">
+                           <p><span className="font-bold">From:</span> Alex Johnson</p>
+                           <p><span className="font-bold">Email:</span> alex@example.com</p>
+                           <p><span className="font-bold">Date:</span> March 10, 2026</p>
                         </div>
-                        <div className="flex text-sm">
-                           <div className="w-2/3 p-2 border-r border-black">
-                              Web stuff
-                              <br />
-                              <span className="text-xs text-gray-500">- Design</span>
-                              <br />
-                              <span className="text-xs text-gray-500">- Coding</span>
+                        <div className="border-t border-gray-300 pt-4 space-y-1 text-sm">
+                           <p><span className="font-bold">Bill To:</span></p>
+                           <p>John Smith</p>
+                           <p className="text-gray-500 text-xs">(No company details recorded)</p>
+                        </div>
+                     </div>
+
+                     {/* Line Items - More realistic but vague */}
+                     <div className="border border-gray-300 mb-6">
+                        <div className="flex border-b border-gray-300 bg-gray-50 text-xs font-bold">
+                           <div className="flex-1 p-2">Description</div>
+                           <div className="w-20 p-2 text-right">Amount</div>
+                        </div>
+                        <div className="flex border-b border-gray-300 p-2 text-sm">
+                           <div className="flex-1">
+                              <div>Website Project</div>
+                              <div className="text-xs text-gray-500">Design & Development</div>
                            </div>
-                           <div className="w-1/3 p-2 text-right">
-                              5000
+                           <div className="w-20 text-right">$3,500.00</div>
+                        </div>
+                        <div className="flex border-b border-gray-300 p-2 text-sm">
+                           <div className="flex-1">
+                              <div>Revisions</div>
+                              <div className="text-xs text-gray-500">Additional changes</div>
                            </div>
+                           <div className="w-20 text-right">$800.00</div>
                         </div>
                      </div>
 
-                     <div className="text-right font-bold text-lg mb-8">
-                        Total: $5,000
+                     <div className="text-right font-bold mb-6">
+                        <span className="text-lg">Total: $4,300.00</span>
                      </div>
 
-                     {/* Unprofessional Payment Info */}
-                     <div className="text-sm">
-                        <p className="font-bold underline mb-2">How to pay:</p>
-                        <ul className="list-disc pl-5 space-y-1">
-                           <li>Venmo me at @Alex-Dev</li>
-                           <li>Or mail check to my apartment</li>
-                           <li>
-                              <span className="relative">
-                                 Pls pay within 7 days!!
-                                 {/* Spell Check Error Line */}
-                                 <span className="absolute bottom-0 left-0 w-full h-[2px] bg-red-500/50 wavy-underline"></span>
-                              </span>
-                           </li>
-                        </ul>
+                     {/* Generic Payment Instructions */}
+                     <div className="bg-gray-50 p-3 rounded text-sm border border-gray-200 mb-4">
+                        <p className="font-bold mb-2">Payment Due: April 10, 2026</p>
+                        <p className="text-xs text-gray-600">
+                           Please send payment via bank transfer to the account details to be provided separately.
+                        </p>
+                        <p className="text-xs text-gray-600 mt-2">
+                           No invoice tracking or payment reminders set up.
+                        </p>
                      </div>
 
-                     {/* Red Ink Markups */}
-                     <div className="absolute top-1/2 right-4 transform rotate-[-10deg] opacity-80">
-                        <div className="flex items-center gap-1 text-red-600 text-xs font-bold border border-red-600 p-1 rounded bg-red-50">
-                           <AlertCircle size={12} />
-                           <span>Missing Tax ID?</span>
-                        </div>
-                     </div>
-                     <div className="absolute bottom-20 left-4 transform rotate-[5deg] opacity-80">
-                        <div className="flex items-center gap-1 text-red-600 text-xs font-bold border border-red-600 p-1 rounded bg-red-50">
-                           <AlertCircle size={12} />
-                           <span>No Invoice #</span>
-                        </div>
+                     {/* Missing elements callout */}
+                     <div className="text-xs text-gray-500 border-t border-gray-200 pt-3">
+                        <p>❌ No payment portal</p>
+                        <p>❌ No automatic reminders</p>
+                        <p>❌ Manual follow-up required</p>
                      </div>
                   </div>
 
                   {/* Label */}
                   <div className="absolute bottom-20 left-10 text-gray-400 hidden md:block">
-                     <div className="text-5xl font-extrabold text-slate-400/20 mb-2 uppercase">Manual</div>
+                     <div className="text-5xl font-extrabold text-slate-400/20 mb-2 uppercase">Basic</div>
                   </div>
                </div>
             </div>

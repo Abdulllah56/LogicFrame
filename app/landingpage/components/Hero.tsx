@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import LightRays from './LightRays';
 import DashboardPreview from './DashboardPreview';
-import { ChevronRight, TrendingUp, Users, Activity, Sparkles } from 'lucide-react';
+import { ChevronRight, TrendingUp, Users, Activity } from 'lucide-react';
 
 const MagneticButton: React.FC<{ children: React.ReactNode; href: string; className?: string; primary?: boolean }> = ({ children, href, className, primary }) => {
   const btnRef = useRef<HTMLAnchorElement>(null);
@@ -80,11 +80,6 @@ const Hero = () => {
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
-        {/* Premium Badge */}
-        <div className="inline-flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] px-4 py-2 rounded-full text-xs font-semibold mb-10 animate-fade-in-up backdrop-blur-md hover:bg-white/[0.06] transition-all cursor-default group">
-          <Sparkles size={14} className="text-cyan-400 group-hover:rotate-12 transition-transform" />
-          <span className="text-slate-300 tracking-wide uppercase">V2.0 Now Live — Better, Faster, Stronger</span>
-        </div>
 
         {/* Hero Title with Reactive Gradient */}
         <h1 className="text-5xl md:text-8xl font-black leading-[1.1] mb-8 tracking-tighter text-white">
@@ -112,16 +107,7 @@ const Hero = () => {
           </MagneticButton>
         </div>
 
-        {/* Trusted By / Social Proof Preview */}
-        <div className="flex flex-col items-center gap-4 opacity-40 hover:opacity-100 transition-opacity duration-500">
-          <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-500">Crafted for modern creatives at</span>
-          <div className="flex gap-8 items-center filter grayscale contrast-125">
-            <span className="font-black text-xl italic">STRIPE</span>
-            <span className="font-black text-xl">FIGMA</span>
-            <span className="font-black text-xl">VERCEL</span>
-            <span className="font-black text-xl">LINEAR</span>
-          </div>
-        </div>
+
       </div>
 
       {/* Main Preview */}

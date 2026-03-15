@@ -6,7 +6,6 @@ import Hero from './components/Hero';
 const ValueGrid = lazy(() => import('./components/ValueGrid'));
 const WorkflowSteps = lazy(() => import('./components/WorkflowSteps'));
 const Features = lazy(() => import('./components/Features'));
-const Community = lazy(() => import('./components/Community'));
 const Tools = lazy(() => import('./components/Tools'));
 const Pricing = lazy(() => import('./components/Pricing'));
 const About = lazy(() => import('./components/About'));
@@ -37,7 +36,6 @@ const App: React.FC = () => {
           
           <WorkflowSteps />
           <Features />
-          <Community />
           <Tools />
           <Pricing />
           <About />

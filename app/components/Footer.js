@@ -21,7 +21,7 @@ const Footer = () => {
           <h3 className="text-[#00D9FF] mb-4">Tools</h3>
           <ul className="list-none">
             <li className="py-2"><a href="/invoice" className="text-[#94a3b8] no-underline hover:text-[#00D9FF] transition-colors">Invoice Generator</a></li>
-            <li className="py-2"><a href="/expenses" className="text-[#94a3b8] no-underline hover:text-[#00D9FF] transition-colors">Expense Tracker</a></li>
+            <li className="py-2"><a href="/financefriend" className="text-[#94a3b8] no-underline hover:text-[#00D9FF] transition-colors">Expense Tracker</a></li>
             <li className="py-2"><a href="/background-remover" className="text-[#94a3b8] no-underline hover:text-[#00D9FF] transition-colors">Background Remover</a></li>
             <li className="py-2"><a href="#tools" className="text-[#94a3b8] no-underline hover:text-[#00D9FF] transition-colors">View All</a></li>
           </ul>
@@ -33,7 +33,6 @@ const Footer = () => {
             <li className="py-2"><a href="#about" className="text-[#94a3b8] no-underline hover:text-[#00D9FF] transition-colors">About</a></li>
             <li className="py-2"><a href="#pricing" className="text-[#94a3b8] no-underline hover:text-[#00D9FF] transition-colors">Pricing</a></li>
             <li className="py-2"><a href="mailto:logicframe@gmail.com" className="text-[#94a3b8] no-underline hover:text-[#00D9FF] transition-colors">Contact</a></li>
-            <li className="py-2"><a href="/blog" className="text-[#94a3b8] no-underline hover:text-[#00D9FF] transition-colors">Blog</a></li>
           </ul>
         </div>
 
@@ -48,7 +47,7 @@ const Footer = () => {
       </div>
 
       <div className="text-center mt-12 pt-8 border-t border-[rgba(0,217,255,0.15)] text-[#94a3b8]">
-        <p>© 2025 LogicFrame.</p>
+        <p>© 2026 LogicFrame.</p>
       </div>
     </footer>
   );
