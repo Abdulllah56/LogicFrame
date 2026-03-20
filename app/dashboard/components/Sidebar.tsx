@@ -47,9 +47,6 @@ export default function Sidebar() {
                     <span className="text-xl font-black text-white tracking-tighter leading-none">
                         Logic<span className="text-cyan-400">Frame</span>
                     </span>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">
-                        Professional Suite
-                    </span>
                 </div>
             </div>
 
@@ -105,9 +102,6 @@ export default function Sidebar() {
                             <p className="text-[11px] text-slate-400 leading-relaxed mb-3">
                                 You have active access to all premium features.
                             </p>
-                            <div className="h-1 w-full bg-white/[0.05] rounded-full overflow-hidden">
-                                <div className="h-full w-2/3 bg-cyan-400 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
-                            </div>
                         </div>
                     </div>
                 </div>

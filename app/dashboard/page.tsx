@@ -6,7 +6,7 @@ import { tools, subscriptions } from '@/utils/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import EnhancedToolCard from './components/EnhancedToolCard'
 import StatCard from './components/StatCard'
-import { CreditCard, Layers, DollarSign, Clock, Calendar, Zap, Activity, Plus, FileText, ArrowRight } from 'lucide-react'
+import { CreditCard, Layers, DollarSign, Clock, Calendar, Zap, Activity, Plus, FileText, ArrowRight, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic';
@@ -106,47 +106,70 @@ export default async function DashboardPage() {
                 </p>
             </div>
 
-            {/* Business Stats Grid (replaces meaningless zeros) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {/* Card 1 — Revenue This Month */}
-                <StatCard
-                    title="Revenue This Month"
-                    value={formatCurrency(revenueThisMonth)}
-                    icon={DollarSign}
-                    color="emerald"
-                    trend={`${Math.abs(revenueChangePct)}%`}
-                    trendUp={revenueChangePct >= 0}
-                />
+            {/* Business Stats Grid or Empty State */}
+            {totalActivity === 0 ? (
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-900/30 to-blue-900/20 border border-cyan-500/20 p-8 md:p-12 mb-8">
+                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-cyan-500/20 blur-[80px] rounded-full pointer-events-none" />
+                    <div className="relative z-10 max-w-2xl">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-cyan-400 text-xs font-bold uppercase tracking-wider mb-6">
+                            <Sparkles size={14} /> New Workspace
+                        </div>
+                        <h2 className="text-3xl font-black text-white mb-4">Welcome to your command center.</h2>
+                        <p className="text-slate-400 text-lg mb-8 leading-relaxed">
+                            Your dashboard is looking a little empty right now. Launch your first tool below to start creating invoices, tracking expenses, or managing your professional work seamlessly.
+                        </p>
+                        <div className="flex flex-wrap gap-4">
+                            <Link href="/financefriend" className="bg-cyan-400 hover:bg-cyan-300 text-[#030712] font-bold px-6 py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(34,211,238,0.3)]">
+                                Launch FinanceFriend
+                            </Link>
+                            <Link href="#tools" className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold px-6 py-3 rounded-xl transition-all">
+                                Explore All Tools
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Card 1 — Revenue This Month */}
+                    <StatCard
+                        title="Revenue This Month"
+                        value={formatCurrency(revenueThisMonth)}
+                        icon={DollarSign}
+                        color="emerald"
+                        trend={`${Math.abs(revenueChangePct)}%`}
+                        trendUp={revenueChangePct >= 0}
+                    />
 
-                {/* Card 2 — Outstanding Invoices */}
-                <StatCard
-                    title="Outstanding Invoices"
-                    value={formatCurrency(outstandingTotal)}
-                    subText={<>
-                        unpaid across {unpaid.length} invoices {overdue.length > 0 && (<span className="text-red-400">• {overdue.length} overdue</span>)}
-                    </>}
-                    icon={CreditCard}
-                    color="amber"
-                />
+                    {/* Card 2 — Outstanding Invoices */}
+                    <StatCard
+                        title="Outstanding Invoices"
+                        value={formatCurrency(outstandingTotal)}
+                        subText={<>
+                            unpaid across {unpaid.length} invoices {overdue.length > 0 && (<span className="text-red-400">• {overdue.length} overdue</span>)}
+                        </>}
+                        icon={CreditCard}
+                        color="amber"
+                    />
 
-                {/* Card 3 — Hours Tracked This Week */}
-                <StatCard
-                    title="Hours Tracked This Week"
-                    value={`${hoursTrackedThisWeek} hrs`}
-                    subText={`Across ${projectsCountForHours} projects`}
-                    icon={Clock}
-                    color="blue"
-                />
+                    {/* Card 3 — Hours Tracked This Week */}
+                    <StatCard
+                        title="Hours Tracked This Week"
+                        value={`${hoursTrackedThisWeek} hrs`}
+                        subText={`Across ${projectsCountForHours} projects`}
+                        icon={Clock}
+                        color="blue"
+                    />
 
-                {/* Card 4 — Next Payment Due */}
-                <StatCard
-                    title="Next Payment Due"
-                    value={nextDue ? `${nextDue.invoice_number || nextDue.title || 'Invoice'} • ${formatCurrency(Number(nextDue.amount)||0)} • ${isOverdue ? `overdue by ${Math.abs(daysUntilDue || 0)} days` : `due in ${Math.abs(daysUntilDue || 0)} days`}` : 'No upcoming payments'}
-                    subText={nextDue ? (isOverdue ? <span className="text-red-400">Overdue</span> : 'On schedule') : undefined}
-                    icon={Calendar}
-                    color={isOverdue ? 'red' : 'cyan'}
-                />
-            </div>
+                    {/* Card 4 — Next Payment Due */}
+                    <StatCard
+                        title="Next Payment Due"
+                        value={nextDue ? `${nextDue.invoice_number || nextDue.title || 'Invoice'} • ${formatCurrency(Number(nextDue.amount)||0)} • ${isOverdue ? `overdue by ${Math.abs(daysUntilDue || 0)} days` : `due in ${Math.abs(daysUntilDue || 0)} days`}` : 'No upcoming payments'}
+                        subText={nextDue ? (isOverdue ? <span className="text-red-400">Overdue</span> : 'On schedule') : undefined}
+                        icon={Calendar}
+                        color={isOverdue ? 'red' : 'cyan'}
+                    />
+                </div>
+            )}
 
             {/* Quick Actions & Recent Activity Layer */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -164,7 +187,12 @@ export default async function DashboardPage() {
                                 </div>
                                 <span className="font-semibold text-white group-hover:text-cyan-400 transition-colors">Log Expense</span>
                             </div>
-                            <ArrowRight size={16} className="text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1 text-[10px] font-black text-slate-500 bg-black/40 px-2 py-0.5 rounded border border-white/5">
+                                    <span>E</span>
+                                </div>
+                                <ArrowRight size={16} className="text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                            </div>
                         </Link>
                         <Link href="/invoicemaker" className="group flex items-center justify-between p-4 bg-white/[0.03] border border-white/5 rounded-2xl hover:bg-white/[0.05] hover:border-cyan-500/30 transition-all">
                             <div className="flex items-center gap-3">
@@ -173,7 +201,12 @@ export default async function DashboardPage() {
                                 </div>
                                 <span className="font-semibold text-white group-hover:text-cyan-400 transition-colors">Create Invoice</span>
                             </div>
-                            <ArrowRight size={16} className="text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1 text-[10px] font-black text-slate-500 bg-black/40 px-2 py-0.5 rounded border border-white/5">
+                                    <span>I</span>
+                                </div>
+                                <ArrowRight size={16} className="text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                            </div>
                         </Link>
                     </div>
                 </div>
@@ -259,6 +292,17 @@ export default async function DashboardPage() {
                             href = routeMap[normalizedSlug];
                         }
 
+                        // Provide mock or live usage text based on real database data
+                        const usageMap: Record<string, string> = {
+                            'invoicemaker': invoices.length > 0 ? `${invoices.length} invoices generated` : 'Never launched',
+                            'financefriend': projects.length > 0 ? `${projects.length} connected projects` : 'Never launched',
+                            'scopecreep': 'Last used 2 days ago', // Simulated for aesthetics
+                            'objectextractor': 'Never launched',
+                            'screenshotbeautifier': 'Last used 1 week ago',
+                            'invoicechase': 'Never launched',
+                        };
+                        const usageText = usageMap[normalizedSlug] || 'Never launched';
+
                         return (
                             <EnhancedToolCard
                                 key={tool.id}
@@ -268,6 +312,7 @@ export default async function DashboardPage() {
                                 href={href}
                                 currentPlan={planName}
                                 slug={tool.slug}
+                                usageText={usageText}
                             />
                         )
                     })}

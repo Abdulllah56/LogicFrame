@@ -13,9 +13,10 @@ interface EnhancedToolCardProps {
     currentPlan: string;
     slug: string;
     index?: number;
+    usageText?: string;
 }
 
-export default function EnhancedToolCard({ title, description, href, currentPlan, slug, index = 0 }: EnhancedToolCardProps) {
+export default function EnhancedToolCard({ title, description, href, currentPlan, slug, index = 0, usageText }: EnhancedToolCardProps) {
     const isFree = currentPlan.toLowerCase() === 'free';
     const isPro = currentPlan.toLowerCase().includes('pro') || currentPlan.toLowerCase().includes('agency');
 
@@ -70,6 +71,9 @@ export default function EnhancedToolCard({ title, description, href, currentPlan
                     <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">
                         {title}
                     </h3>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                        {usageText || 'Not launched yet'}
+                    </p>
                     <p className="text-slate-400 text-sm leading-relaxed mb-8 line-clamp-2">
                         {description}
                     </p>
