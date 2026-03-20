@@ -18,7 +18,6 @@ import { logout } from '@/app/auth/actions';
 
 const menuItems = [
     { name: 'Overview', icon: Home, href: '/dashboard' },
-    { name: 'My Tools', icon: LayoutGrid, href: '/dashboard#tools' },
     { name: 'Billing', icon: CreditCard, href: '/dashboard#billing' },
     { name: 'Settings', icon: Settings, href: '/dashboard/settings' },
 ];

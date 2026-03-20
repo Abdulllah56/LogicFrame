@@ -6,7 +6,8 @@ import { tools, subscriptions } from '@/utils/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import EnhancedToolCard from './components/EnhancedToolCard'
 import StatCard from './components/StatCard'
-import { Activity, CreditCard, Sparkles, Layers } from 'lucide-react'
+import { CreditCard, Layers, DollarSign, Clock, Calendar, Zap, Activity, Plus, FileText, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic';
 
@@ -21,39 +22,76 @@ export default async function DashboardPage() {
     }
 
     // Fetch dashboard data in parallel
-    const [allTools, userSubs, invoiceCountData, projectCountData] = await Promise.all([
+    const [allTools, userSubs, invoicesRes, projectsRes] = await Promise.all([
         db.query.tools.findMany({
-            with: {
-                plans: true,
-            },
+            with: { plans: true },
         }),
         db.query.subscriptions.findMany({
             where: eq(subscriptions.userId, user.id),
-            with: {
-                plan: true,
-            },
+            with: { plan: true },
             orderBy: [desc(subscriptions.updatedAt)]
         }),
-        supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-        supabase.from('projects').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+        supabase
+            .from('invoices')
+            .select('*')
+            .eq('user_id', user.id),
+        supabase
+            .from('projects')
+            .select('*')
+            .eq('user_id', user.id)
     ]);
 
-    const activeSubsCount = userSubs.filter(s => s.status === 'active').length;
-    const invoiceCount = invoiceCountData.count || 0;
-    const projectCount = projectCountData.count || 0;
+    const invoices = invoicesRes.data || [] as any[];
+    const projects = projectsRes.data || [] as any[];
+    const invoiceCount = invoices.length;
+    const projectCount = projects.length;
     const totalActivity = invoiceCount + projectCount;
 
-    // Calculate Pro vs Free stats
-    const proToolCount = userSubs.filter(s => s.status === 'active' && s.plan?.name !== 'Free').length;
+    // Revenue This Month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-    // Billing status based on latest subscription
-    const billingStatus = userSubs.length > 0
-        ? userSubs[0].status.charAt(0).toUpperCase() + userSubs[0].status.slice(1)
-        : 'Inactive';
+    const sumAmount = (items: any[]) => items.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
 
-    // API Usage mock calculation based on activity (realistically would be rows / limit)
-    const usageLimit = 100;
-    const usagePercent = Math.min(Math.round((totalActivity / usageLimit) * 100), 100);
+    const getPaidDate = (inv: any) => {
+        if (inv.paid_at) return new Date(inv.paid_at);
+        if (inv.updated_at) return new Date(inv.updated_at);
+        if (inv.created_at) return new Date(inv.created_at);
+        return null;
+    }
+
+    const paidThisMonth = invoices.filter(inv => inv.status === 'paid' && getPaidDate(inv) && getPaidDate(inv) >= startOfMonth);
+    const paidLastMonth = invoices.filter(inv => inv.status === 'paid' && getPaidDate(inv) && getPaidDate(inv) >= startOfLastMonth && getPaidDate(inv) <= endOfLastMonth);
+
+    const revenueThisMonth = sumAmount(paidThisMonth);
+    const revenueLastMonth = sumAmount(paidLastMonth) || 1; // avoid divide by zero
+    const revenueChangePct = Math.round(((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 100);
+
+    const formatCurrency = (n: number) => {
+        return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+    }
+
+    // Outstanding Invoices
+    const unpaid = invoices.filter(inv => inv.status !== 'paid');
+    const overdue = unpaid.filter(inv => inv.due_date && new Date(inv.due_date) < now);
+    const outstandingTotal = sumAmount(unpaid);
+
+    // Hours Tracked This Week (placeholder until time tracker data source exists)
+    // If there is a time entries table later, replace this block with real query.
+    const hoursTrackedThisWeek = 0;
+    const projectsCountForHours = projects.length;
+
+    // Next Payment Due
+    const nextDue = unpaid
+        .filter(inv => inv.due_date && new Date(inv.due_date) >= startOfMonth || inv.due_date) // keep all with due_date
+        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
+    const daysUntilDue = nextDue ? Math.ceil((new Date(nextDue.due_date).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+    const isOverdue = typeof daysUntilDue === 'number' && daysUntilDue < 0;
+
+    // Active tools
+    const activeSubsCount = userSubs.filter(s => s.status === 'active').length;
 
     return (
         <div className="space-y-12 max-w-7xl mx-auto">
@@ -68,38 +106,124 @@ export default async function DashboardPage() {
                 </p>
             </div>
 
-            {/* Quick Stats Grid */}
+            {/* Business Stats Grid (replaces meaningless zeros) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Card 1 — Revenue This Month */}
                 <StatCard
-                    title="Active Tools"
-                    value={activeSubsCount}
-                    icon={Layers}
-                    color="cyan"
-                    trend={`${allTools.length - activeSubsCount} available`}
-                    trendUp={true}
+                    title="Revenue This Month"
+                    value={formatCurrency(revenueThisMonth)}
+                    icon={DollarSign}
+                    color="emerald"
+                    trend={`${Math.abs(revenueChangePct)}%`}
+                    trendUp={revenueChangePct >= 0}
                 />
+
+                {/* Card 2 — Outstanding Invoices */}
                 <StatCard
-                    title="Pro Subscriptions"
-                    value={proToolCount}
-                    icon={Sparkles}
-                    color="purple"
-                    trend={`${userSubs.length} total`}
-                    trendUp={userSubs.length > 0}
-                />
-                <StatCard
-                    title="API Usage"
-                    value={`${usagePercent}%`}
-                    icon={Activity}
-                    color="blue"
-                    trend={`${totalActivity} requests`}
-                    trendUp={usagePercent < 80}
-                />
-                <StatCard
-                    title="Billing Status"
-                    value={billingStatus}
+                    title="Outstanding Invoices"
+                    value={formatCurrency(outstandingTotal)}
+                    subText={<>
+                        unpaid across {unpaid.length} invoices {overdue.length > 0 && (<span className="text-red-400">• {overdue.length} overdue</span>)}
+                    </>}
                     icon={CreditCard}
-                    color={billingStatus === 'Active' ? 'green' : (billingStatus === 'Inactive' ? 'neutral' : 'yellow')}
+                    color="amber"
                 />
+
+                {/* Card 3 — Hours Tracked This Week */}
+                <StatCard
+                    title="Hours Tracked This Week"
+                    value={`${hoursTrackedThisWeek} hrs`}
+                    subText={`Across ${projectsCountForHours} projects`}
+                    icon={Clock}
+                    color="blue"
+                />
+
+                {/* Card 4 — Next Payment Due */}
+                <StatCard
+                    title="Next Payment Due"
+                    value={nextDue ? `${nextDue.invoice_number || nextDue.title || 'Invoice'} • ${formatCurrency(Number(nextDue.amount)||0)} • ${isOverdue ? `overdue by ${Math.abs(daysUntilDue || 0)} days` : `due in ${Math.abs(daysUntilDue || 0)} days`}` : 'No upcoming payments'}
+                    subText={nextDue ? (isOverdue ? <span className="text-red-400">Overdue</span> : 'On schedule') : undefined}
+                    icon={Calendar}
+                    color={isOverdue ? 'red' : 'cyan'}
+                />
+            </div>
+
+            {/* Quick Actions & Recent Activity Layer */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Contextual Quick Actions */}
+                <div className="lg:col-span-1 space-y-6">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Zap className="text-amber-400" size={20} />
+                        Quick Actions
+                    </h2>
+                    <div className="flex flex-col gap-3">
+                        <Link href="/financefriend/expenses" className="group flex items-center justify-between p-4 bg-white/[0.03] border border-white/5 rounded-2xl hover:bg-white/[0.05] hover:border-cyan-500/30 transition-all">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
+                                    <Plus size={18} />
+                                </div>
+                                <span className="font-semibold text-white group-hover:text-cyan-400 transition-colors">Log Expense</span>
+                            </div>
+                            <ArrowRight size={16} className="text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                        </Link>
+                        <Link href="/invoicemaker" className="group flex items-center justify-between p-4 bg-white/[0.03] border border-white/5 rounded-2xl hover:bg-white/[0.05] hover:border-cyan-500/30 transition-all">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                                    <FileText size={18} />
+                                </div>
+                                <span className="font-semibold text-white group-hover:text-cyan-400 transition-colors">Create Invoice</span>
+                            </div>
+                            <ArrowRight size={16} className="text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Recent Activity */}
+                <div className="lg:col-span-2 space-y-6">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Activity className="text-cyan-400" size={20} />
+                        Recent Activity
+                    </h2>
+                    <div className="bg-[#0B0F19]/80 backdrop-blur-xl rounded-2xl border border-white/5 overflow-hidden p-6 min-h-[160px] flex flex-col justify-center">
+                        {invoices.length > 0 || projects.length > 0 ? (
+                            <div className="space-y-4">
+                                {invoices.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 3).map((inv, i) => (
+                                    <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                            <div>
+                                                <p className="font-medium text-white text-sm">{inv.invoice_number || 'Invoice generated'}</p>
+                                                <p className="text-xs text-slate-400">{new Date(inv.created_at).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-bold text-white text-sm">{formatCurrency(Number(inv.amount) || 0)}</p>
+                                            <p className="text-xs text-slate-500 uppercase">{inv.status}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                                {invoices.length === 0 && projects.slice(0,3).map((proj, i) => (
+                                    <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-2 h-2 rounded-full bg-blue-400" />
+                                            <div>
+                                                <p className="font-medium text-white text-sm">{proj.name || 'New Project'}</p>
+                                                <p className="text-xs text-slate-400">{new Date(proj.created_at).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs text-slate-500 uppercase">{proj.status || 'Active'}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center">
+                                <p className="text-slate-400 text-sm">No activity yet. Start by logging an expense or creating an invoice!</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Tools Section */}

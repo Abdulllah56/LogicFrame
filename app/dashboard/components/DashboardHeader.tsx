@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Bell, Search, Command } from 'lucide-react';
+import { Search, Command } from 'lucide-react';
 
 export default function DashboardHeader() {
     return (
@@ -22,12 +22,6 @@ export default function DashboardHeader() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-6">
-                <button className="relative p-2.5 text-slate-400 hover:text-cyan-400 transition-all rounded-xl hover:bg-white/[0.05] group">
-                    <Bell size={20} className="group-hover:rotate-12 transition-transform" />
-                    <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-cyan-400 rounded-full border-2 border-[#030712] shadow-[0_0_8px_rgba(34,211,238,0.5)]"></span>
-                </button>
-
-                <div className="h-8 w-px bg-white/[0.05]" />
 
                 {/* User Avatar */}
                 <div className="flex items-center gap-3 group cursor-pointer">

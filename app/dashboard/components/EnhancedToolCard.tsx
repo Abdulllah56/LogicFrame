@@ -2,8 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, Zap, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { FinanceFriendIcon, ScopeCreepIcon, InvoiceChaseIcon, ObjectExtractorIcon, ScreenshotBeautifierIcon, InvoiceMakerIcon, GenericToolIcon } from './ToolIcons';
 
 interface EnhancedToolCardProps {
     title: string;
@@ -37,7 +38,26 @@ export default function EnhancedToolCard({ title, description, href, currentPlan
                 <div className="p-6 flex flex-col h-full relative z-10">
                     <div className="flex justify-between items-start mb-6">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center border border-white/5 ${isPro ? 'bg-cyan-500/10 text-cyan-400 shadow-lg shadow-cyan-500/20' : 'bg-white/5 text-slate-400'}`}>
-                            {isPro ? <Sparkles size={24} /> : <Zap size={24} />}
+                            {/* Per-tool icon mapping */}
+                            {(() => {
+                                const key = slug.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                const map: Record<string, { icon: any; bgClass: string }> = {
+                                    'financefriend': { icon: FinanceFriendIcon, bgClass: 'bg-emerald-500/10' },
+                                    'scopecreep': { icon: ScopeCreepIcon, bgClass: 'bg-violet-500/10' },
+                                    'invoicechase': { icon: InvoiceChaseIcon, bgClass: 'bg-amber-500/10' },
+                                    'objectextractor': { icon: ObjectExtractorIcon, bgClass: 'bg-fuchsia-500/10' },
+                                    'screenshotbeautifier': { icon: ScreenshotBeautifierIcon, bgClass: 'bg-cyan-500/10' },
+                                    'invoicemaker': { icon: InvoiceMakerIcon, bgClass: 'bg-blue-500/10' },
+                                };
+
+                                const info = map[key] || { icon: GenericToolIcon, bgClass: 'bg-white/5' };
+                                const IconComp = info.icon;
+                                return (
+                                    <div className={`${info.bgClass} p-1.5 rounded-lg flex justify-center items-center`}>
+                                        <IconComp className="w-8 h-8" />
+                                    </div>
+                                );
+                            })()}
                         </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${isPro
                             ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_10px_rgba(0,217,255,0.2)]'
@@ -67,12 +87,14 @@ export default function EnhancedToolCard({ title, description, href, currentPlan
                             Launch
                             <ArrowRight size={16} className="group-hover/btn:translate-x-0.5 transition-transform" />
                         </Link>
-                        <Link
-                            href={`/dashboard/tools/${slug.toLowerCase()}`}
-                            className="px-4 py-2.5 rounded-xl border border-white/10 text-slate-400 hover:text-white hover:bg-white/5 hover:border-white/20 transition-all font-semibold"
-                        >
-                            {isPro ? 'Manage' : 'Upgrade'}
-                        </Link>
+                        {!isFree && (
+                            <Link
+                                href={`/dashboard/tools/${slug.toLowerCase()}`}
+                                className="px-4 py-2.5 rounded-xl border border-white/10 text-slate-400 hover:text-white hover:bg-white/5 hover:border-white/20 transition-all font-semibold"
+                            >
+                                Manage
+                            </Link>
+                        )}
                     </div>
                 </div>
             </div>

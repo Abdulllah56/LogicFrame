@@ -5,11 +5,13 @@ interface StatCardProps {
     value: string | number;
     trend?: string;
     trendUp?: boolean;
+    trendLabel?: string; // Optional label shown after the trend, defaults to 'vs last month'
+    subText?: React.ReactNode; // Neutral subtext without arrows
     icon?: React.ElementType;
     color?: string; // Tailwind color class prefix e.g. 'blue'
 }
 
-export default function StatCard({ title, value, trend, trendUp, icon: Icon, color = 'blue' }: StatCardProps) {
+export default function StatCard({ title, value, trend, trendUp, trendLabel = 'vs last month', subText, icon: Icon, color = 'blue' }: StatCardProps) {
     return (
         <div className="bg-neutral-900/60 backdrop-blur-md border border-white/5 rounded-2xl p-6 relative overflow-hidden group hover:border-white/10 transition-colors">
             <div className="flex justify-between items-start z-10 relative">
@@ -29,8 +31,13 @@ export default function StatCard({ title, value, trend, trendUp, icon: Icon, col
                     <span className={`${trendUp ? 'text-green-400' : 'text-red-400'} flex items-center font-medium`}>
                         {trendUp ? '↑' : '↓'} {trend}
                     </span>
-                    <span className="text-neutral-500">vs last month</span>
+                    {trendLabel !== undefined && (
+                        <span className="text-neutral-500">{trendLabel}</span>
+                    )}
                 </div>
+            )}
+            {subText && !trend && (
+                <div className="mt-4 text-sm text-neutral-500 z-10 relative">{subText}</div>
             )}
 
             {/* Decorative Gradient Blob */}
