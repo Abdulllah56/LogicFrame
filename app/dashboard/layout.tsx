@@ -1,17 +1,34 @@
 import React from 'react';
+import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
+import { db } from '@/utils/db';
+import { subscriptions } from '@/utils/db/schema';
+import { eq } from 'drizzle-orm';
 import Sidebar from './components/Sidebar';
 import DashboardHeader from './components/DashboardHeader';
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let isPro = false;
+    if (user) {
+        const userSubs = await db.query.subscriptions.findMany({
+            where: eq(subscriptions.userId, user.id)
+        });
+        isPro = userSubs.some(s => s.status === 'active');
+    }
+
     return (
         <div className="flex h-screen bg-[#030712] text-white overflow-hidden font-sans selection:bg-cyan-500/30">
             {/* Sidebar */}
             <div className="hidden md:flex flex-col w-64 fixed inset-y-0 z-50">
-                <Sidebar />
+                <Sidebar isPro={isPro} />
             </div>
 
             {/* Main Content */}

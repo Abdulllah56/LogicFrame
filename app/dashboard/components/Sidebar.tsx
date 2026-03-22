@@ -22,7 +22,7 @@ const menuItems = [
     { name: 'Settings', icon: Settings, href: '/dashboard/settings' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isPro = false }: { isPro?: boolean }) {
     const pathname = usePathname();
 
     const handleLogout = async () => {
@@ -91,20 +91,22 @@ export default function Sidebar() {
                 </div>
 
                 {/* Status / Pro Section */}
-                <div className="px-3">
-                    <div className="bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/[0.05] rounded-2xl p-4 relative group/pro overflow-hidden">
-                        <div className="absolute top-0 right-0 w-20 h-20 bg-cyan-500/10 blur-2xl rounded-full" />
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Sparkles size={14} className="text-cyan-400" />
-                                <span className="text-[10px] font-black text-white uppercase tracking-wider">Pro Account</span>
+                {isPro && (
+                    <div className="px-3">
+                        <div className="bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/[0.05] rounded-2xl p-4 relative group/pro overflow-hidden">
+                            <div className="absolute top-0 right-0 w-20 h-20 bg-cyan-500/10 blur-2xl rounded-full" />
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Sparkles size={14} className="text-cyan-400" />
+                                    <span className="text-[10px] font-black text-white uppercase tracking-wider">Pro Account</span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 leading-relaxed mb-3">
+                                    You have active access to all premium features.
+                                </p>
                             </div>
-                            <p className="text-[11px] text-slate-400 leading-relaxed mb-3">
-                                You have active access to all premium features.
-                            </p>
                         </div>
                     </div>
-                </div>
+                )}
             </nav>
 
             {/* Footer / Logout Section */}

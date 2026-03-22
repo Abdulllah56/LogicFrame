@@ -22,7 +22,10 @@ export default async function DashboardPage() {
     }
 
     // Fetch dashboard data in parallel
-    const [allTools, userSubs, invoicesRes, projectsRes] = await Promise.all([
+    const [
+        allTools, userSubs, invoicesRes, projectsRes, proposalsRes, portflowClientsRes, portflowProjectsRes,
+        ffExpensesRes, ffBillsRes, ffGoalsRes, oeExportsRes, sbExportsRes
+    ] = await Promise.all([
         db.query.tools.findMany({
             with: { plans: true },
         }),
@@ -31,21 +34,261 @@ export default async function DashboardPage() {
             with: { plan: true },
             orderBy: [desc(subscriptions.updatedAt)]
         }),
-        supabase
-            .from('invoices')
-            .select('*')
-            .eq('user_id', user.id),
-        supabase
-            .from('projects')
-            .select('*')
-            .eq('user_id', user.id)
+        supabase.from('invoices').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('projects').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('portflow_proposals').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('portflow_clients').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('portflow_projects').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('finance_friend_expenses').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(20),
+        supabase.from('finance_friend_bills').select('*').eq('user_id', user.id).order('due_date', { ascending: true }).limit(20),
+        supabase.from('finance_friend_savings_goals').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('object_extractor_exports').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('screenshot_beautifier_exports').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20)
     ]);
 
-    const invoices = invoicesRes.data || [] as any[];
-    const projects = projectsRes.data || [] as any[];
-    const invoiceCount = invoices.length;
+    const invoices = invoicesRes.data || [];
+    const projects = projectsRes.data || [];
+    const proposals = proposalsRes.data || [];
+    const portflowClients = portflowClientsRes.data || [];
+    const portflowProjects = portflowProjectsRes.data || [];
+    const ffExpenses = ffExpensesRes.data || [];
+    const ffBills = ffBillsRes.data || [];
+    const ffGoals = ffGoalsRes.data || [];
+    const oeExports = oeExportsRes.data || [];
+    const sbExports = sbExportsRes.data || [];
+
+    // --- PHASE 4: UNIVERSAL ACTIVITY STREAM ---
+    type ActivityItem = {
+        id: string;
+        title: string;
+        subtitle: string;
+        date: Date;
+        amount?: number;
+        status?: string;
+        appName: string;
+        color: string;
+    };
+
+    const activities: ActivityItem[] = [];
+
+    // 1. InvoiceChase / InvoiceMaker
+    invoices.forEach(inv => {
+        activities.push({
+            id: `inv-${inv.id}`,
+            title: inv.invoice_number || 'New Invoice',
+            subtitle: inv.client_name || 'Client',
+            amount: Number(inv.amount) || 0,
+            status: inv.status,
+            date: new Date(inv.created_at),
+            appName: 'InvoiceMaker / Chase',
+            color: 'bg-blue-400'
+        });
+    });
+
+    // 2. ScopeCreep
+    projects.forEach(proj => {
+        activities.push({
+            id: `proj-${proj.id}`,
+            title: proj.name || 'New Project',
+            subtitle: 'Scope tracker created',
+            status: proj.status || 'Active',
+            date: new Date(proj.created_at),
+            appName: 'ScopeCreep',
+            color: 'bg-violet-400'
+        });
+    });
+
+    // 3. Portflow
+    proposals.forEach(prop => {
+        activities.push({
+            id: `prop-${prop.id}`,
+            title: prop.title || 'Proposal',
+            subtitle: 'Proposal Created',
+            status: prop.status || 'Draft',
+            date: new Date(prop.created_at),
+            appName: 'Portflow',
+            color: 'bg-cyan-400'
+        });
+    });
+
+    portflowClients.forEach(client => {
+        activities.push({
+            id: `pclient-${client.id}`,
+            title: client.name || 'Client',
+            subtitle: 'New Client Added',
+            date: new Date(client.created_at),
+            appName: 'Portflow',
+            color: 'bg-cyan-500'
+        });
+    });
+
+    portflowProjects.forEach(proj => {
+        activities.push({
+            id: `pproj-${proj.id}`,
+            title: proj.title || 'Project',
+            subtitle: 'Portal Workspace Created',
+            status: proj.status || 'Active',
+            date: new Date(proj.created_at),
+            appName: 'Portflow',
+            color: 'bg-cyan-300'
+        });
+    });
+
+    // 4. FinanceFriend (Supabase + Global Memory Fallback)
+    let financeActivitiesCount = 0;
+    
+    // Add DB data first
+    ffExpenses.forEach(exp => {
+        financeActivitiesCount++;
+        activities.push({
+            id: `db-exp-${exp.id}`,
+            title: exp.description || 'Expense logged',
+            subtitle: 'FinanceFriend',
+            amount: Number(exp.amount),
+            date: new Date(exp.date),
+            appName: 'FinanceFriend',
+            color: 'bg-emerald-400'
+        });
+    });
+
+    ffBills.forEach(bill => {
+        financeActivitiesCount++;
+        activities.push({
+            id: `db-bill-${bill.id}`,
+            title: bill.name || 'Bill added',
+            subtitle: 'FinanceFriend',
+            amount: Number(bill.amount),
+            status: bill.is_paid ? 'Paid' : 'Unpaid',
+            date: new Date(bill.due_date),
+            appName: 'FinanceFriend',
+            color: 'bg-emerald-500'
+        });
+    });
+
+    ffGoals.forEach(goal => {
+        financeActivitiesCount++;
+        activities.push({
+            id: `db-goal-${goal.id}`,
+            title: goal.name || 'Savings Goal',
+            subtitle: 'FinanceFriend',
+            amount: Number(goal.target_amount),
+            date: new Date(goal.created_at),
+            appName: 'FinanceFriend',
+            color: 'bg-emerald-300'
+        });
+    });
+
+    try {
+        const ffData = (global as any).financeFriendData;
+        if (ffData) {
+            if (ffData.expenses) {
+                 const expenses = ffData.expenses.filter((e: any) => e.userId === 1); // Demo user isolation
+                 // deduplicate logic can be complex, so we just append cache for now
+                 if (ffExpenses.length === 0) {
+                     expenses.forEach((exp: any) => {
+                         financeActivitiesCount++;
+                         activities.push({
+                            id: `exp-${exp.id}`,
+                            title: exp.description || 'Expense logged',
+                            subtitle: 'FinanceFriend',
+                            amount: Number(exp.amount),
+                            date: new Date(exp.date),
+                            appName: 'FinanceFriend',
+                            color: 'bg-emerald-400'
+                         });
+                     });
+                 }
+            }
+            if (ffData.bills) {
+                 const bills = ffData.bills.filter((e: any) => e.userId === 1);
+                 if (ffBills.length === 0) {
+                     bills.forEach((bill: any) => {
+                         financeActivitiesCount++;
+                         activities.push({
+                            id: `bill-${bill.id}`,
+                            title: bill.name || 'Bill added',
+                            subtitle: 'FinanceFriend',
+                            amount: Number(bill.amount),
+                            status: bill.isPaid ? 'Paid' : 'Unpaid',
+                            date: new Date(bill.dueDate),
+                            appName: 'FinanceFriend',
+                            color: 'bg-emerald-500'
+                         });
+                     });
+                 }
+            }
+            if (ffData.savingsGoals) {
+                 const goals = ffData.savingsGoals.filter((e: any) => e.userId === 1);
+                 if (ffGoals.length === 0) {
+                     goals.forEach((goal: any) => {
+                         financeActivitiesCount++;
+                         activities.push({
+                            id: `goal-${goal.id}`,
+                            title: goal.name || 'Savings Goal',
+                            subtitle: 'FinanceFriend',
+                            amount: Number(goal.targetAmount),
+                            date: new Date(), 
+                            appName: 'FinanceFriend',
+                            color: 'bg-emerald-300'
+                         });
+                     });
+                 }
+            }
+        }
+    } catch(e) {}
+
+    // 5. Object Extractor Tracker
+    oeExports.forEach(exp => {
+        activities.push({
+            id: `oe-${exp.id}`,
+            title: exp.file_name || 'Subject Extracted',
+            subtitle: 'Background removed',
+            status: exp.status || 'Completed',
+            date: new Date(exp.created_at),
+            appName: 'Object Extractor',
+            color: 'bg-amber-400'
+        });
+    });
+
+    // 6. Screenshot Beautifier Tracker
+    sbExports.forEach(sb => {
+        activities.push({
+            id: `sb-${sb.id}`,
+            title: sb.file_name || 'Screenshot Exported',
+            subtitle: 'Beautified Canvas',
+            date: new Date(sb.created_at),
+            appName: 'Screenshot Beautifier',
+            color: 'bg-fuchsia-400'
+        });
+    });
+
+    // 7. Simulated/Placeholder Logs for serverless utility apps (Screenshot Beautifier, Object Extractor)
+    // Placed only if REAL exports arrays are empty and total activities are low
+    const hasRealUtilityActivity = oeExports.length > 0 || sbExports.length > 0;
+    if (activities.length === 0 && !hasRealUtilityActivity) {
+        activities.push({
+            id: 'mock-sb-1',
+            title: 'Screenshot Exported',
+            subtitle: '1920x1080 canvas',
+            date: new Date(Date.now() - 1000 * 60 * 60 * 2),
+            appName: 'Screenshot Beautifier',
+            color: 'bg-fuchsia-400'
+        });
+        activities.push({
+            id: 'mock-oe-1',
+            title: 'Subject Extracted',
+            subtitle: 'Background removed',
+            date: new Date(Date.now() - 1000 * 60 * 60 * 24),
+            appName: 'Object Extractor',
+            color: 'bg-amber-400'
+        });
+    }
+
+    // Sort all global activities descending
+    activities.sort((a, b) => b.date.getTime() - a.date.getTime());
+    const recentActivities = activities.slice(0, 6);
+    const totalActivity = activities.length;
     const projectCount = projects.length;
-    const totalActivity = invoiceCount + projectCount;
 
     // Revenue This Month
     const now = new Date();
@@ -102,7 +345,7 @@ export default async function DashboardPage() {
                     Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">{user.user_metadata.full_name?.split(' ')[0] || 'Creator'}</span>
                 </h1>
                 <p className="text-slate-400 mt-2 text-lg max-w-2xl">
-                    Manage your powerful suite of tools. You have <span className="text-white font-semibold">{activeSubsCount} active apps</span> and <span className="text-white font-semibold">{totalActivity} items</span> synced today.
+                    Manage your powerful suite of tools. You have <span className="text-white font-semibold">{allTools.length} connected apps</span> and <span className="text-white font-semibold">{totalActivity} activities</span> synced today.
                 </p>
             </div>
 
@@ -211,48 +454,53 @@ export default async function DashboardPage() {
                     </div>
                 </div>
 
-                {/* Recent Activity */}
+                {/* Universal Recent Activity Stream */}
                 <div className="lg:col-span-2 space-y-6">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
                         <Activity className="text-cyan-400" size={20} />
                         Recent Activity
                     </h2>
                     <div className="bg-[#0B0F19]/80 backdrop-blur-xl rounded-2xl border border-white/5 overflow-hidden p-6 min-h-[160px] flex flex-col justify-center">
-                        {invoices.length > 0 || projects.length > 0 ? (
+                        {recentActivities.length > 0 ? (
                             <div className="space-y-4">
-                                {invoices.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 3).map((inv, i) => (
-                                    <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                {recentActivities.map((act) => (
+                                    <div key={act.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0 hover:bg-white/[0.02] -mx-4 px-4 transition-colors rounded-lg group">
+                                        <div className="flex items-center gap-4">
+                                            {/* App Color Dot indicator */}
+                                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/5 border border-white/10 shrink-0">
+                                                <div className={`w-2.5 h-2.5 rounded-full ${act.color} group-hover:scale-125 transition-transform`} />
+                                            </div>
                                             <div>
-                                                <p className="font-medium text-white text-sm">{inv.invoice_number || 'Invoice generated'}</p>
-                                                <p className="text-xs text-slate-400">{new Date(inv.created_at).toLocaleDateString()}</p>
+                                                <p className="font-medium text-white text-sm flex items-center gap-2">
+                                                    {act.title}
+                                                </p>
+                                                <p className="text-xs text-slate-400 mt-0.5">
+                                                    {act.appName} • {act.subtitle}
+                                                </p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-bold text-white text-sm">{formatCurrency(Number(inv.amount) || 0)}</p>
-                                            <p className="text-xs text-slate-500 uppercase">{inv.status}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                                {invoices.length === 0 && projects.slice(0,3).map((proj, i) => (
-                                    <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-blue-400" />
-                                            <div>
-                                                <p className="font-medium text-white text-sm">{proj.name || 'New Project'}</p>
-                                                <p className="text-xs text-slate-400">{new Date(proj.created_at).toLocaleDateString()}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-xs text-slate-500 uppercase">{proj.status || 'Active'}</p>
+                                        <div className="text-right shrink-0">
+                                            {act.amount !== undefined && (
+                                                <p className="font-bold text-white text-sm">
+                                                    {formatCurrency(act.amount)}
+                                                </p>
+                                            )}
+                                            {act.status ? (
+                                                <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${act.status === 'Draft' ? 'text-amber-400' : act.status === 'paid' ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                    {act.status}
+                                                </p>
+                                            ) : (
+                                                <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-1">
+                                                    {act.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         ) : (
                             <div className="text-center">
-                                <p className="text-slate-400 text-sm">No activity yet. Start by logging an expense or creating an invoice!</p>
+                                <p className="text-slate-400 text-sm">No activity yet. Your platform actions will aggregate here.</p>
                             </div>
                         )}
                     </div>
@@ -271,7 +519,13 @@ export default async function DashboardPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                     {allTools.map((tool, index) => {
                         const sub = userSubs.find(s => s.plan?.toolId === tool.id && s.status === 'active');
-                        const planName = sub?.plan?.name || "Free";
+                        const isGlobalPro = activeSubsCount > 0;
+                        let planName = sub?.plan?.name || "Free";
+                        
+                        // Treat all tools as Pro if the user has an active global/Pro license to prevent contradictions
+                        if (isGlobalPro && planName === "Free") {
+                            planName = "Pro";
+                        }
 
                         // Map specific routes based on actual app directory structure
                         const normalizedSlug = tool.slug.toLowerCase().replace(/[^a-z0-9]/g, '');
