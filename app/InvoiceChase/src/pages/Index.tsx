@@ -34,7 +34,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
-  const { isGuest, usesLeft, limit, tryUse, showModal, closeModal } = useGuestLimit('invoicechase');
+  const { isGuest, usesLeft, limit, tryUse, requireAuth, showModal, closeModal } = useGuestLimit('invoicechase');
 
   useEffect(() => {
     // Set up auth state listener

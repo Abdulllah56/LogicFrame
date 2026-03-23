@@ -19,11 +19,12 @@ serve(async (req) => {
 
     console.log('Starting reminder check...');
 
-    // Get all unpaid invoices
+    // Get all unpaid invoices where auto-chase is enabled
     const { data: invoices, error: invoicesError } = await supabase
       .from('invoices')
       .select('*')
-      .eq('status', 'unpaid');
+      .eq('status', 'unpaid')
+      .eq('auto_chase', true);
 
     if (invoicesError) {
       throw new Error(`Failed to fetch invoices: ${invoicesError.message}`);
@@ -43,6 +44,35 @@ serve(async (req) => {
       const daysOverdue = Math.floor(
         (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
       );
+
+      // Check Time and Timezone
+      const reminderTime = invoice.reminder_time || '09:00';
+      const timezone = invoice.reminder_timezone || 'UTC';
+      
+      const tzOffsets: Record<string, number> = {
+        'UTC': 0,
+        'GMT': 0,
+        'PST': -8,
+        'EST': -5,
+        'PKT': 5
+      };
+
+      const offset = tzOffsets[timezone] || 0;
+      
+      // Get current hour and minute in the specified timezone
+      const now = new Date();
+      const nowInTz = new Date(now.getTime() + (offset * 60 * 60 * 1000));
+      const currentHour = nowInTz.getUTCHours();
+      const currentMinute = nowInTz.getUTCMinutes();
+      
+      const [scheduledHour, scheduledMinute] = reminderTime.split(':').map(Number);
+      
+      // If it's not yet the scheduled time in that timezone, skip for now
+      // (Assuming this function runs frequently, e.g., every hour)
+      if (currentHour < scheduledHour || (currentHour === scheduledHour && currentMinute < scheduledMinute)) {
+        console.log(`Invoice ${invoice.invoice_number}: Scheduled for ${reminderTime} ${timezone}. Current time in TZ: ${currentHour}:${currentMinute}. Skipping.`);
+        continue;
+      }
 
       console.log(`Invoice ${invoice.invoice_number}: ${daysOverdue} days overdue, ${invoice.reminders_sent} reminders sent`);
 

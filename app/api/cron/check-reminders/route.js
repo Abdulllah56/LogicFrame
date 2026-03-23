@@ -1,116 +1,181 @@
-import { NextResponse } from 'next/server';
+import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server";
+import nodemailer from "nodemailer";
 
-// TEMPORARY IN-MEMORY STORAGE
-let invoices = [];
+// Define the email templates manually or import if it was a shared lib
+const getTemplate = (type, invoice, daysOverdue) => {
+    const amount = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(invoice.amount);
+    const dueDate = new Date(invoice.due_date).toLocaleDateString();
 
-// Email templates
-const emailTemplates = {
-  friendly: {
-    subject: (invoice) => `Friendly Reminder: Invoice for ${invoice.clientName}`,
-    body: (invoice) => `
-      Hi ${invoice.clientName},
-      
-      I hope you're doing well! This is a friendly reminder that invoice for $${invoice.amount} 
-      was due on ${new Date(invoice.dueDate).toLocaleDateString()}.
-      
-      If you've already sent payment, please disregard this message. 
-      Otherwise, I'd appreciate payment at your earliest convenience.
-      
-      Thanks!
-    `
-  },
-  firm: {
-    subject: (invoice) => `Payment Required: Invoice Overdue`,
-    body: (invoice, daysOverdue) => `
-      Hi ${invoice.clientName},
-      
-      Invoice for $${invoice.amount} is now ${daysOverdue} days overdue.
-      
-      Please process payment within 48 hours to avoid late fees.
-      
-      Thank you for your prompt attention to this matter.
-    `
-  },
-  final: {
-    subject: (invoice) => `Final Notice: Immediate Payment Required`,
-    body: (invoice, daysOverdue) => `
-      Hi ${invoice.clientName},
-      
-      This is a final notice that invoice for $${invoice.amount} is ${daysOverdue} days overdue.
-      
-      Please remit payment immediately to avoid further action.
-      
-      If there are any issues preventing payment, please contact me immediately.
-    `
-  }
+    if (type === 'friendly') {
+        return {
+            subject: `Friendly Reminder: Invoice #${invoice.invoice_number} Payment`,
+            body: `Hi ${invoice.client_name},\n\nI wanted to send a quick reminder that Invoice #${invoice.invoice_number} for ${amount} was due on ${dueDate}.\n\nIf you've already sent payment, please disregard this message.\n\nThanks!`
+        };
+    } else if (type === 'firm') {
+        return {
+            subject: `Payment Required: Invoice #${invoice.invoice_number} - ${daysOverdue} Days Overdue`,
+            body: `Hi ${invoice.client_name},\n\nInvoice #${invoice.invoice_number} for ${amount} is now ${daysOverdue} days overdue.\n\nPlease process payment at your earliest convenience to avoid late fees.\n\nBest regards`
+        };
+    } else {
+        return {
+            subject: `FINAL NOTICE: Invoice #${invoice.invoice_number} - Immediate Payment Required`,
+            body: `Hi ${invoice.client_name},\n\nThis is a final notice that invoice #${invoice.invoice_number} for ${amount} is now ${daysOverdue} days overdue.\n\nPlease remit payment TODAY to avoid further action.\n\nSincerely`
+        };
+    }
 };
 
-// Function to send email (using SendGrid or similar)
-async function sendEmail(to, subject, body) {
-  // REPLACE WITH YOUR EMAIL SERVICE (SendGrid, Resend, etc.)
-  console.log('Sending email:', { to, subject, body });
-  return true;
-}
+const TZ_OFFSETS = {
+    'UTC': 0,
+    'GMT': 0,
+    'PST': -8,
+    'EST': -5,
+    'PKT': 5
+};
 
-// Main cron job function
 export async function GET(request) {
-  // Security: Verify cron secret to prevent unauthorized access
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const today = new Date();
-  const results = [];
-
-  // Check each unpaid invoice
-  for (const invoice of invoices) {
-    if (invoice.status === 'paid') continue;
-
-    const dueDate = new Date(invoice.dueDate);
-    const daysOverdue = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
-
-    // Skip if not yet overdue
-    if (daysOverdue <= 0) continue;
-
-    let shouldSend = false;
-    let templateType = null;
-
-    // Escalation logic
-    if (daysOverdue === 3 && invoice.remindersSent === 0) {
-      shouldSend = true;
-      templateType = 'friendly';
-    } else if (daysOverdue === 7 && invoice.remindersSent === 1) {
-      shouldSend = true;
-      templateType = 'firm';
-    } else if (daysOverdue === 14 && invoice.remindersSent === 2) {
-      shouldSend = true;
-      templateType = 'final';
+    // 1. Verify Cron Secret
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        // For testing purposes, you might want to allow access if no secret is set, 
+        // but for production this is critical.
+        if (process.env.CRON_SECRET) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
     }
 
-    if (shouldSend && templateType) {
-      const template = emailTemplates[templateType];
-      const subject = template.subject(invoice);
-      const body = template.body(invoice, daysOverdue);
+    try {
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
 
-      await sendEmail(invoice.clientEmail, subject, body);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-      // Update reminder count
-      invoice.remindersSent++;
+        // 2. Fetch all unpaid/pending invoices where auto-chase is enabled
+        const { data: invoices, error: invoiceError } = await supabaseAdmin
+            .from("invoices")
+            .select("*")
+            .in("status", ["unpaid", "pending"])
+            .eq("auto_chase", true);
 
-      results.push({
-        invoiceId: invoice.id,
-        client: invoice.clientName,
-        daysOverdue,
-        reminderType: templateType,
-        sent: true,
-      });
+        if (invoiceError) throw invoiceError;
+
+        const results = [];
+
+        for (const invoice of invoices) {
+            const dueDate = new Date(invoice.due_date);
+            dueDate.setHours(0, 0, 0, 0);
+            const diffTime = today.getTime() - dueDate.getTime();
+            const daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (daysOverdue <= 0) continue;
+
+            // 3. Timezone and Time Check
+            const timezone = invoice.reminder_timezone || 'UTC';
+            const reminderTime = invoice.reminder_time || '09:00';
+            const offset = TZ_OFFSETS[timezone] || 0;
+            
+            // Get current hour in the target timezone
+            const now = new Date();
+            const nowInTz = new Date(now.getTime() + (offset * 60 * 60 * 1000));
+            const currentHour = nowInTz.getUTCHours();
+            const currentMinute = nowInTz.getUTCMinutes();
+            
+            const [scheduledHour, scheduledMinute] = reminderTime.split(':').map(Number);
+            
+            // If it's not yet time in that timezone, skip
+            if (currentHour < scheduledHour || (currentHour === scheduledHour && currentMinute < scheduledMinute)) {
+                console.log(`Invoice ${invoice.invoice_number}: Scheduled for ${reminderTime} ${timezone}. Waiting...`);
+                continue;
+            }
+
+            // 4. Calculate Reminder Type
+            let type = null;
+            let reminderLevel = 0;
+
+            const r1 = invoice.reminder_day_1 || 3;
+            const r2 = invoice.reminder_day_2 || 7;
+            const r3 = invoice.reminder_day_3 || 14;
+
+            // Check if today matches any of the reminder days
+            if (daysOverdue === r1 && (invoice.reminders_sent || 0) === 0) {
+                type = 'friendly';
+                reminderLevel = 1;
+            } else if (daysOverdue === r2 && (invoice.reminders_sent || 0) === 1) {
+                type = 'firm';
+                reminderLevel = 2;
+            } else if (daysOverdue === r3 && (invoice.reminders_sent || 0) === 2) {
+                type = 'final';
+                reminderLevel = 3;
+            }
+
+            if (type) {
+                // 3. Check if we already sent a reminder TODAY for this invoice to prevent duplicates
+                const { data: recentLogs } = await supabaseAdmin
+                    .from("reminder_logs")
+                    .select("id")
+                    .eq("invoice_id", invoice.id)
+                    .gte("sent_at", today.toISOString());
+
+                if (recentLogs && recentLogs.length > 0) {
+                    continue; // Already sent today
+                }
+
+                // 4. Fetch Email Settings for this user
+                const { data: settings } = await supabaseAdmin
+                    .from("email_settings")
+                    .select("*")
+                    .eq("user_id", invoice.user_id)
+                    .single();
+
+                if (!settings) {
+                    results.push({ invoiceId: invoice.id, status: "skipped", reason: "No email settings configured" });
+                    continue;
+                }
+
+                // 5. Send Email
+                const template = getTemplate(type, invoice, daysOverdue);
+                const transporter = nodemailer.createTransport({
+                    host: settings.smtp_host,
+                    port: settings.smtp_port,
+                    secure: settings.smtp_port === 465,
+                    auth: {
+                        user: settings.smtp_user,
+                        pass: settings.smtp_password,
+                    },
+                    tls: { rejectUnauthorized: false }
+                });
+
+                await transporter.sendMail({
+                    from: `"${settings.from_name || 'Invoice Reminder'}" <${settings.from_email}>`,
+                    to: invoice.client_email,
+                    subject: template.subject,
+                    text: template.body,
+                    html: template.body.replace(/\n/g, "<br>"),
+                });
+
+                // 6. Log and Update
+                await supabaseAdmin.from("reminder_logs").insert({
+                    invoice_id: invoice.id,
+                    email_sent_to: invoice.client_email,
+                    reminder_type: type,
+                    sent_at: new Date().toISOString(),
+                });
+
+                await supabaseAdmin.from("invoices").update({
+                    reminders_sent: (invoice.reminders_sent || 0) + 1,
+                }).eq("id", invoice.id);
+
+                results.push({ invoiceId: invoice.id, status: "sent", type });
+            }
+        }
+
+        return NextResponse.json({ success: true, processed: results });
+
+    } catch (error) {
+        console.error("Cron error:", error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
-  }
-
-  return NextResponse.json({
-    success: true,
-    remindersProcessed: results.length,
-    details: results,
-  });
 }

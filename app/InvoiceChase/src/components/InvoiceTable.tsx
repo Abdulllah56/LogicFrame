@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -29,7 +30,7 @@ import {
   DialogFooter,
 } from "../components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { CheckCircle, Trash2, Download, Mail, MoreHorizontal, Pencil, XCircle, Clock } from "lucide-react";
+import { CheckCircle, Trash2, Download, Mail, MoreHorizontal, Pencil, XCircle, Clock, History } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../integrations/supabase/client";
 import {
@@ -58,6 +59,9 @@ interface Invoice {
   reminder_day_1?: number;
   reminder_day_2?: number;
   reminder_day_3?: number;
+  auto_chase?: boolean;
+  reminder_time?: string;
+  reminder_timezone?: string;
 }
 
 interface InvoiceTableProps {
@@ -66,7 +70,11 @@ interface InvoiceTableProps {
 }
 
 export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
+  const navigate = useNavigate();
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [viewingLogsFor, setViewingLogsFor] = useState<Invoice | null>(null);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const formatCurrency = (amount: number) => {
@@ -92,6 +100,50 @@ export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
     const diffTime = today.getTime() - due.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const calculateNextReminderDate = (invoice: Invoice) => {
+    if (invoice.status === "paid" || invoice.status === "cancelled" || !invoice.auto_chase) {
+      return null;
+    }
+
+    const dueDate = new Date(invoice.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const reminderDays = [
+      invoice.reminder_day_1 || 3,
+      invoice.reminder_day_2 || 7,
+      invoice.reminder_day_3 || 14
+    ];
+
+    const currentReminders = invoice.reminders_sent || 0;
+    if (currentReminders >= reminderDays.length) return "All sent";
+
+    const nextReminderDay = reminderDays[currentReminders];
+    const nextDate = new Date(dueDate);
+    nextDate.setDate(dueDate.getDate() + nextReminderDay);
+
+    if (nextDate < today) return "Overdue for send";
+    
+    return nextDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " " + (invoice.reminder_time || "09:00");
+  };
+
+  const toggleAutoChase = async (id: number, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("invoices")
+        .update({ auto_chase: !currentStatus })
+        .eq("id", id);
+
+      if (error) throw error;
+      toast.success(`Auto-chase ${!currentStatus ? 'enabled' : 'disabled'}`);
+      onUpdate();
+    } catch (error) {
+      console.error("Error toggling auto-chase:", error);
+      toast.error("Failed to update auto-chase status");
+    }
   };
 
   const getStatusBadge = (invoice: Invoice) => {
@@ -163,7 +215,13 @@ export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
           client_email: editingInvoice.client_email,
           amount: editingInvoice.amount,
           due_date: editingInvoice.due_date,
-          description: editingInvoice.description
+          description: editingInvoice.description,
+          auto_chase: editingInvoice.auto_chase,
+          reminder_time: editingInvoice.reminder_time,
+          reminder_timezone: editingInvoice.reminder_timezone,
+          reminder_day_1: editingInvoice.reminder_day_1,
+          reminder_day_2: editingInvoice.reminder_day_2,
+          reminder_day_3: editingInvoice.reminder_day_3,
         })
         .eq("id", editingInvoice.id);
 
@@ -177,6 +235,26 @@ export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
       toast.error("Failed to update invoice");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleViewLogs = async (invoice: Invoice) => {
+    setViewingLogsFor(invoice);
+    setIsLoadingLogs(true);
+    try {
+      const { data, error } = await supabase
+        .from("reminder_logs")
+        .select("*")
+        .eq("invoice_id", invoice.id)
+        .order("sent_at", { ascending: false });
+
+      if (error) throw error;
+      setLogs(data || []);
+    } catch (error) {
+      console.error("Error fetching reminder logs:", error);
+      toast.error("Failed to load reminder history");
+    } finally {
+      setIsLoadingLogs(false);
     }
   };
 
@@ -291,7 +369,8 @@ export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
                 <TableHead>Amount</TableHead>
                 <TableHead>Due Date</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Reminders</TableHead>
+                <TableHead>Auto-Chase</TableHead>
+                <TableHead>Next Reminder</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -308,14 +387,35 @@ export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
                   <TableCell>{formatCurrency(invoice.amount)}</TableCell>
                   <TableCell>{formatDate(invoice.due_date)}</TableCell>
                   <TableCell>{getStatusBadge(invoice)}</TableCell>
-                  <TableCell>{invoice.reminders_sent}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className={`w-2 h-2 rounded-full ${invoice.auto_chase ? 'bg-green-500 animate-pulse' : 'bg-muted'}`} 
+                        title={invoice.auto_chase ? 'Active' : 'Disabled'}
+                      />
+                      <span className="text-xs font-medium">{invoice.auto_chase ? 'ON' : 'OFF'}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 w-6 p-0" 
+                        onClick={() => toggleAutoChase(invoice.id, !!invoice.auto_chase)}
+                      >
+                        <Clock className={`h-3 w-3 ${invoice.auto_chase ? 'text-primary' : 'text-muted-foreground'}`} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-xs text-muted-foreground">
+                      {calculateNextReminderDate(invoice) || "-"}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2 items-center">
                       {invoice.status !== "paid" && invoice.status !== "cancelled" && (
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.location.assign(`/InvoiceChase/send-email/${invoice.invoice_number}`)}
+                          onClick={() => navigate(`/send-email/${invoice.invoice_number}`)}
                           className="flex shrink-0"
                         >
                           <Mail className="h-4 w-4 mr-1" />
@@ -336,11 +436,15 @@ export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit Invoice
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewLogs(invoice)}>
+                            <History className="mr-2 h-4 w-4" />
+                            View History
+                          </DropdownMenuItem>
 
                           {/* Mobile only reminder button */}
                           {invoice.status !== "paid" && invoice.status !== "cancelled" && (
                             <DropdownMenuItem
-                              onClick={() => window.location.assign(`/InvoiceChase/send-email/${invoice.invoice_number}`)}
+                              onClick={() => navigate(`/send-email/${invoice.invoice_number}`)}
                               className="sm:hidden"
                             >
                               <Mail className="mr-2 h-4 w-4" />
@@ -457,12 +561,124 @@ export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
                   onChange={(e) => setEditingInvoice({ ...editingInvoice, description: e.target.value })}
                 />
               </div>
+
+              <div className="space-y-4 pt-2 border-t border-primary/10">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="edit-auto-chase">Enable Auto-Chase</Label>
+                  <input
+                    id="edit-auto-chase"
+                    type="checkbox"
+                    checked={editingInvoice.auto_chase}
+                    onChange={(e) => setEditingInvoice({ ...editingInvoice, auto_chase: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                </div>
+
+                {editingInvoice.auto_chase && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-time">Time (24h)</Label>
+                      <Input
+                        id="edit-time"
+                        type="time"
+                        value={editingInvoice.reminder_time || '09:00'}
+                        onChange={(e) => setEditingInvoice({ ...editingInvoice, reminder_time: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-tz">Timezone</Label>
+                      <select
+                        id="edit-tz"
+                        value={editingInvoice.reminder_timezone || 'UTC'}
+                        onChange={(e) => setEditingInvoice({ ...editingInvoice, reminder_timezone: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="UTC">UTC</option>
+                        <option value="GMT">GMT</option>
+                        <option value="PST">PST</option>
+                        <option value="EST">EST</option>
+                        <option value="PKT">PKT</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="grid gap-1">
+                    <Label className="text-[10px]">1st (Days)</Label>
+                    <Input
+                      type="number"
+                      value={editingInvoice.reminder_day_1}
+                      onChange={(e) => setEditingInvoice({ ...editingInvoice, reminder_day_1: parseInt(e.target.value) })}
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-[10px]">2nd (Days)</Label>
+                    <Input
+                      type="number"
+                      value={editingInvoice.reminder_day_2}
+                      onChange={(e) => setEditingInvoice({ ...editingInvoice, reminder_day_2: parseInt(e.target.value) })}
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-[10px]">3rd (Days)</Label>
+                    <Input
+                      type="number"
+                      value={editingInvoice.reminder_day_3}
+                      onChange={(e) => setEditingInvoice({ ...editingInvoice, reminder_day_3: parseInt(e.target.value) })}
+                    />
+                  </div>
+                </div>
+              </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setEditingInvoice(null)}>Cancel</Button>
                 <Button type="submit" disabled={isSaving}>{isSaving ? "Saving..." : "Save Changes"}</Button>
               </DialogFooter>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Logs Dialog */}
+      <Dialog open={!!viewingLogsFor} onOpenChange={(open) => !open && setViewingLogsFor(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Reminder History: {viewingLogsFor?.invoice_number}</DialogTitle>
+            <DialogDescription>
+              All email reminders sent for this invoice.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+            {isLoadingLogs ? (
+              <div className="flex justify-center py-8">
+                <Clock className="h-8 w-8 animate-spin text-primary opacity-20" />
+              </div>
+            ) : logs.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No reminders sent yet for this invoice.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {logs.map((log) => (
+                  <div key={log.id} className="p-3 rounded-lg border border-primary/10 bg-muted/30 flex justify-between items-center">
+                    <div>
+                      <div className="font-medium capitalize text-sm">{log.reminder_type} Reminder</div>
+                      <div className="text-xs text-muted-foreground">Sent to: {log.email_sent_to}</div>
+                    </div>
+                    <div className="text-right text-xs">
+                      <div className="font-medium">{new Date(log.sent_at).toLocaleDateString()}</div>
+                      <div className="text-muted-foreground">{new Date(log.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setViewingLogsFor(null)}>Close</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

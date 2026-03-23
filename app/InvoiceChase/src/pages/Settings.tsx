@@ -22,6 +22,11 @@ export default function Settings() {
     smtp_password: "",
     from_email: "",
     from_name: "",
+    default_reminder_day_1: "3",
+    default_reminder_day_2: "7",
+    default_reminder_day_3: "14",
+    default_reminder_time: "09:00",
+    default_reminder_timezone: "UTC",
   });
   const [emailProvider, setEmailProvider] = useState<'gmail' | 'outlook' | 'yahoo' | 'custom'>('gmail');
 
@@ -83,6 +88,11 @@ export default function Settings() {
           smtp_password: data.smtp_password,
           from_email: data.from_email,
           from_name: data.from_name || "",
+          default_reminder_day_1: data.default_reminder_day_1?.toString() || "3",
+          default_reminder_day_2: data.default_reminder_day_2?.toString() || "7",
+          default_reminder_day_3: data.default_reminder_day_3?.toString() || "14",
+          default_reminder_time: data.default_reminder_time || "09:00",
+          default_reminder_timezone: data.default_reminder_timezone || "UTC",
         });
         setEmailProvider(data.provider as any);
       }
@@ -137,6 +147,11 @@ export default function Settings() {
           smtp_host: smtpConfig.host,
           smtp_port: smtpConfig.port,
           domain_verified: false,
+          default_reminder_day_1: parseInt(emailSettings.default_reminder_day_1),
+          default_reminder_day_2: parseInt(emailSettings.default_reminder_day_2),
+          default_reminder_day_3: parseInt(emailSettings.default_reminder_day_3),
+          default_reminder_time: emailSettings.default_reminder_time,
+          default_reminder_timezone: emailSettings.default_reminder_timezone,
         }, { onConflict: 'user_id' });
 
       if (error) throw error;
@@ -383,6 +398,76 @@ export default function Settings() {
                     </div>
                   </>
                 )}
+
+                <div className="pt-4 border-t border-primary/10">
+                  <h3 className="text-lg font-semibold mb-4 text-primary">Reminder Defaults</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="default_reminder_day_1">1st Reminder (Days)</Label>
+                      <Input
+                        id="default_reminder_day_1"
+                        type="number"
+                        min="0"
+                        value={emailSettings.default_reminder_day_1}
+                        onChange={(e) => setEmailSettings({ ...emailSettings, default_reminder_day_1: e.target.value })}
+                        className="bg-background/50 border-primary/20"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="default_reminder_day_2">2nd Reminder (Days)</Label>
+                      <Input
+                        id="default_reminder_day_2"
+                        type="number"
+                        min="0"
+                        value={emailSettings.default_reminder_day_2}
+                        onChange={(e) => setEmailSettings({ ...emailSettings, default_reminder_day_2: e.target.value })}
+                        className="bg-background/50 border-primary/20"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="default_reminder_day_3">3rd Reminder (Days)</Label>
+                      <Input
+                        id="default_reminder_day_3"
+                        type="number"
+                        min="0"
+                        value={emailSettings.default_reminder_day_3}
+                        onChange={(e) => setEmailSettings({ ...emailSettings, default_reminder_day_3: e.target.value })}
+                        className="bg-background/50 border-primary/20"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="default_reminder_time">Default Time (24h)</Label>
+                      <Input
+                        id="default_reminder_time"
+                        type="time"
+                        value={emailSettings.default_reminder_time}
+                        onChange={(e) => setEmailSettings({ ...emailSettings, default_reminder_time: e.target.value })}
+                        className="bg-background/50 border-primary/20"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="default_reminder_timezone">Default Timezone</Label>
+                      <div className="flex flex-col gap-2">
+                        <select
+                          id="default_reminder_timezone"
+                          value={emailSettings.default_reminder_timezone}
+                          onChange={(e) => setEmailSettings({ ...emailSettings, default_reminder_timezone: e.target.value })}
+                          className="flex h-10 w-full rounded-md border border-primary/20 bg-background/50 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="UTC">UTC (Universal Time)</option>
+                          <option value="GMT">GMT (Greenwich Mean Time)</option>
+                          <option value="PST">PST (Pacific Standard Time)</option>
+                          <option value="EST">EST (Eastern Standard Time)</option>
+                          <option value="PKT">PKT (Pakistan Standard Time)</option>
+                        </select>
+                        <p className="text-[10px] text-muted-foreground">Select the timezone for automated reminders</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 <Button type="submit" disabled={saving || emailProvider === 'custom'} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 font-semibold">
                   {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}

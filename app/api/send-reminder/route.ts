@@ -8,8 +8,13 @@ export async function POST(request: Request) {
         const { invoiceId, reminderType, daysOverdue, customSubject, customBody } = await request.json();
 
         // 1. Validate request
-        if (!invoiceId) {
-            return NextResponse.json({ error: "Missing invoiceId" }, { status: 400 });
+        let cleanId = invoiceId;
+        if (typeof invoiceId === 'string') {
+            cleanId = parseInt(invoiceId, 10);
+        }
+
+        if (!cleanId || isNaN(Number(cleanId))) {
+            return NextResponse.json({ error: "Invalid or missing invoiceId" }, { status: 400 });
         }
 
         // 2. Authenticate User via Supabase headers
@@ -43,16 +48,29 @@ export async function POST(request: Request) {
         const { data: invoice, error: invoiceError } = await supabaseAdmin
             .from("invoices")
             .select("*")
-            .eq("id", invoiceId)
+            .eq("id", cleanId)
             .single();
 
         if (invoiceError || !invoice) {
             console.error("Invoice fetch error:", invoiceError);
-            console.error("Invoice ID requested:", invoiceId);
-            return NextResponse.json({
-                error: "Invoice not found",
-                details: invoiceError?.message
-            }, { status: 404 });
+            console.error("Invoice ID requested:", cleanId);
+            
+            // Re-attempt with the ID as a string if it's a UUID (unlikely but safe)
+            const { data: altFetch } = await supabaseAdmin
+                .from("invoices")
+                .select("*")
+                .eq("id", String(invoiceId))
+                .maybeSingle();
+
+            if (!altFetch) {
+                return NextResponse.json({
+                    error: "Invoice not found",
+                    details: `ID ${cleanId} (as ${typeof cleanId}) did not match any record. ${invoiceError?.message || ""}`
+                }, { status: 404 });
+            }
+            // Use altFetch if it worked
+            // (overwrite invoice variable if we wanted to continue, but let's just fail with better info for now)
+            return NextResponse.json({ error: "Invoice ID type mismatch", details: "ID was found but only as a string match." }, { status: 404 });
         }
 
         const userId = invoice.user_id;
@@ -96,7 +114,7 @@ export async function POST(request: Request) {
 
         // 6. Log the reminder
         await supabaseAdmin.from("reminder_logs").insert({
-            invoice_id: invoiceId,
+            invoice_id: cleanId,
             email_sent_to: invoice.client_email,
             reminder_type: reminderType,
             sent_at: new Date().toISOString(),
@@ -106,7 +124,7 @@ export async function POST(request: Request) {
         await supabaseAdmin.from("invoices").update({
             reminders_sent: (invoice.reminders_sent || 0) + 1,
             // optional: update status?
-        }).eq("id", invoiceId);
+        }).eq("id", cleanId);
 
         return NextResponse.json({ success: true });
 

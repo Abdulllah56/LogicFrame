@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
+import { Switch } from "../components/ui/switch";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
@@ -24,13 +25,42 @@ export const InvoiceForm = ({ onInvoiceCreated, tryUse }: InvoiceFormProps) => {
     reminderDay1: "3",
     reminderDay2: "7",
     reminderDay3: "14",
+    autoChase: true,
+    reminderTime: "09:00",
+    reminderTimezone: "UTC",
   });
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUserId(user?.id || null);
+      if (user) {
+        fetchDefaultSettings(user.id);
+      }
     });
   }, []);
+
+  const fetchDefaultSettings = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("email_settings")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (data) {
+        setFormData(prev => ({
+          ...prev,
+          reminderDay1: data.default_reminder_day_1?.toString() || "3",
+          reminderDay2: data.default_reminder_day_2?.toString() || "7",
+          reminderDay3: data.default_reminder_day_3?.toString() || "14",
+          reminderTime: data.default_reminder_time || "09:00",
+          reminderTimezone: data.default_reminder_timezone || "UTC",
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching default settings:", error);
+    }
+  };
 
   const generateInvoiceNumber = async () => {
     if (!userId) return `INV-001`;
@@ -90,6 +120,9 @@ export const InvoiceForm = ({ onInvoiceCreated, tryUse }: InvoiceFormProps) => {
         reminder_day_1: parseInt(formData.reminderDay1),
         reminder_day_2: parseInt(formData.reminderDay2),
         reminder_day_3: parseInt(formData.reminderDay3),
+        auto_chase: formData.autoChase,
+        reminder_time: formData.reminderTime,
+        reminder_timezone: formData.reminderTimezone,
       });
 
       if (error) throw error;
@@ -106,6 +139,9 @@ export const InvoiceForm = ({ onInvoiceCreated, tryUse }: InvoiceFormProps) => {
         reminderDay1: "3",
         reminderDay2: "7",
         reminderDay3: "14",
+        autoChase: true,
+        reminderTime: "09:00",
+        reminderTimezone: "UTC",
       });
 
       onInvoiceCreated();
@@ -187,6 +223,49 @@ export const InvoiceForm = ({ onInvoiceCreated, tryUse }: InvoiceFormProps) => {
               placeholder="Website design project..."
               rows={3}
             />
+          </div>
+
+          <div className="space-y-4 pt-2 border-t border-primary/10">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="autoChase" className="text-base">Enable Auto-Chase</Label>
+                <p className="text-xs text-muted-foreground">Automatically send reminders when invoice is overdue</p>
+              </div>
+              <Switch
+                id="autoChase"
+                checked={formData.autoChase}
+                onCheckedChange={(checked) => setFormData({ ...formData, autoChase: checked })}
+              />
+            </div>
+
+            {formData.autoChase && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="space-y-2">
+                  <Label htmlFor="reminderTime">Time to send (24h)</Label>
+                  <Input
+                    id="reminderTime"
+                    type="time"
+                    value={formData.reminderTime}
+                    onChange={(e) => setFormData({ ...formData, reminderTime: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reminderTimezone">Timezone</Label>
+                  <select
+                    id="reminderTimezone"
+                    value={formData.reminderTimezone}
+                    onChange={(e) => setFormData({ ...formData, reminderTimezone: e.target.value })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="UTC">UTC (Universal Time)</option>
+                    <option value="GMT">GMT (Greenwich Mean Time)</option>
+                    <option value="PST">PST (Pacific Standard Time)</option>
+                    <option value="EST">EST (Eastern Standard Time)</option>
+                    <option value="PKT">PKT (Pakistan Standard Time)</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-3">
