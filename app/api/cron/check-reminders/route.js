@@ -45,6 +45,9 @@ export async function GET(request) {
     }
 
     try {
+        console.log("Using Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+        console.log("Service Role Key ends with:", process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(-4));
+
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -70,7 +73,11 @@ export async function GET(request) {
             const diffTime = today.getTime() - dueDate.getTime();
             const daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-            if (daysOverdue <= 0) continue;
+            console.log(`Processing ${invoice.invoice_number}: daysOverdue=${daysOverdue}`);
+            if (daysOverdue <= 0) {
+                console.log(`  Skipping: Not overdue yet.`);
+                continue;
+            }
 
             // 3. Timezone and Time Check
             const timezone = invoice.reminder_timezone || 'UTC';
@@ -87,7 +94,7 @@ export async function GET(request) {
             
             // If it's not yet time in that timezone, skip
             if (currentHour < scheduledHour || (currentHour === scheduledHour && currentMinute < scheduledMinute)) {
-                console.log(`Invoice ${invoice.invoice_number}: Scheduled for ${reminderTime} ${timezone}. Waiting...`);
+                console.log(`  Skipping: Scheduled for ${reminderTime} ${timezone}. Current time in Tz: ${currentHour}:${currentMinute}`);
                 continue;
             }
 
@@ -99,17 +106,19 @@ export async function GET(request) {
             const r2 = invoice.reminder_day_2 || 7;
             const r3 = invoice.reminder_day_3 || 14;
 
-            // Check if today matches any of the reminder days
-            if (daysOverdue === r1 && (invoice.reminders_sent || 0) === 0) {
-                type = 'friendly';
-                reminderLevel = 1;
-            } else if (daysOverdue === r2 && (invoice.reminders_sent || 0) === 1) {
-                type = 'firm';
-                reminderLevel = 2;
-            } else if (daysOverdue === r3 && (invoice.reminders_sent || 0) === 2) {
+            // Catch-up logic: Send the most urgent reminder that hasn't been sent yet
+            if (daysOverdue >= r3 && (invoice.reminders_sent || 0) < 3) {
                 type = 'final';
                 reminderLevel = 3;
+            } else if (daysOverdue >= r2 && (invoice.reminders_sent || 0) < 2) {
+                type = 'firm';
+                reminderLevel = 2;
+            } else if (daysOverdue >= r1 && (invoice.reminders_sent || 0) < 1) {
+                type = 'friendly';
+                reminderLevel = 1;
             }
+            
+            console.log(`  Reminder level: ${type || 'None'}`);
 
             if (type) {
                 // 3. Check if we already sent a reminder TODAY for this invoice to prevent duplicates
