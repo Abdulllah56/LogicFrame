@@ -12,13 +12,13 @@ interface SEOProps {
 }
 
 const defaultMeta = {
-  siteName: "PayChaser",
-  title: "PayChaser - Automated Invoice Payment Reminders",
-  description: "Stop chasing payments manually. PayChaser automates invoice reminders so you get paid faster. Track unpaid invoices, send professional reminders, and improve cash flow.",
+  siteName: "Invoice Chase",
+  title: "Invoice Chase - Automated Invoice Payment Reminders",
+  description: "Stop chasing payments manually. Invoice Chase automates invoice reminders so you get paid faster. Track unpaid invoices, send professional reminders, and improve cash flow.",
   keywords: "invoice reminders, payment collection, accounts receivable, invoice tracking, payment automation, cash flow management, invoice management software, payment reminder system, overdue invoice reminders, automated billing",
-  siteUrl: "https://paychaser.app",
+  siteUrl: "https://onxittqxvkzwetazcimx.supabase.co/invoicechase",
   ogImage: "/og-image.png",
-  twitterHandle: "@paychaser",
+  twitterHandle: "@invoicechase",
 };
 
 export const SEO = ({
@@ -47,7 +47,7 @@ export const SEO = ({
   const defaultStructuredData = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "PayChaser",
+    "name": "Invoice Chase",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web",
     "description": defaultMeta.description,
@@ -77,7 +77,7 @@ export const SEO = ({
       <meta name="title" content={pageTitle} />
       <meta name="description" content={description} />
       <meta name="keywords" content={keywords} />
-      <meta name="author" content="PayChaser" />
+      <meta name="author" content="Invoice Chase" />
       <meta name="robots" content={noIndex ? "noindex, nofollow" : "index, follow"} />
       <meta name="googlebot" content={noIndex ? "noindex, nofollow" : "index, follow"} />
       
@@ -158,12 +158,12 @@ export const generateFAQSchema = (faqs: { question: string; answer: string }[]) 
 export const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "PayChaser",
-  "url": "https://paychaser.app",
-  "logo": "https://paychaser.app/logo.png",
+  "name": "Invoice Chase",
+  "url": "https://onxittqxvkzwetazcimx.supabase.co/invoicechase",
+  "logo": "https://onxittqxvkzwetazcimx.supabase.co/invoicechase/logo.png",
   "sameAs": [
-    "https://twitter.com/paychaser",
-    "https://linkedin.com/company/paychaser",
+    "https://twitter.com/invoicechase",
+    "https://linkedin.com/company/invoicechase",
   ],
   "contactPoint": {
     "@type": "ContactPoint",

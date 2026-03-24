@@ -1,12 +1,12 @@
-# PayChaser Robots.txt
-# https://paychaser.app
+# Invoice Chase Robots.txt
+# https://onxittqxvkzwetazcimx.supabase.co/invoicechase
 
 # Allow all crawlers
 User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://paychaser.app/sitemap.xml
+Sitemap: https://onxittqxvkzwetazcimx.supabase.co/invoicechase/sitemap.xml
 
 # Specific crawler permissions
 User-agent: Googlebot
@@ -77,4 +77,4 @@ User-agent: Claude-Web
 Disallow: /
 
 # Host
-Host: https://paychaser.app
+Host: https://onxittqxvkzwetazcimx.supabase.co/invoicechase

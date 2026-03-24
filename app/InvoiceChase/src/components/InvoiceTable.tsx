@@ -30,7 +30,20 @@ import {
   DialogFooter,
 } from "../components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { CheckCircle, Trash2, Download, Mail, MoreHorizontal, Pencil, XCircle, Clock, History } from "lucide-react";
+import { 
+  CheckCircle, 
+  Trash2, 
+  Download, 
+  Mail, 
+  MoreHorizontal, 
+  Pencil, 
+  XCircle, 
+  Clock, 
+  History,
+  Search,
+  Filter,
+  ArrowUpDown
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../integrations/supabase/client";
 import {
@@ -76,6 +89,10 @@ export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
   const [logs, setLogs] = useState<any[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortField, setSortField] = useState<string>("due_date");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -169,15 +186,21 @@ export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     try {
+      const updateData: any = { status: newStatus };
+      
+      // Feature 1: Turn off Auto-Chase when marked Paid
+      if (newStatus === "paid") {
+        updateData.auto_chase = false;
+      }
+
       const { error } = await supabase
         .from("invoices")
-        .update({ status: newStatus })
+        .update(updateData)
         .eq("id", id);
 
       if (error) throw error;
 
-      toast.success(`Invoice status updated to ${newStatus}`);
-      // Add a small delay to ensure DB propagation or just call immediately
+      toast.success(`Invoice status updated to ${newStatus}${newStatus === "paid" ? " & Auto-Chase disabled" : ""}`);
       onUpdate();
     } catch (error) {
       console.error("Error updating invoice status:", error);
@@ -335,6 +358,41 @@ export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
     toast.success("Invoices exported successfully!");
   };
 
+  // Search and Filter Logic
+  const filteredAndSortedInvoices = invoices
+    .filter(invoice => {
+      const matchesSearch = 
+        invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        invoice.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        invoice.client_email.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a: any, b: any) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+      
+      if (sortField === "due_date") {
+        aVal = new Date(aVal).getTime();
+        bVal = new Date(bVal).getTime();
+      }
+      
+      if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+
+  const toggleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
   if (invoices.length === 0) {
     return (
       <Card>
@@ -352,30 +410,89 @@ export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Invoices</CardTitle>
-          <Button onClick={handleExport} variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Auto-Chase</TableHead>
-                <TableHead>Next Reminder</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoices.map((invoice) => (
+      <Card className="border border-white/10 bg-black/20 backdrop-blur-md shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-white/5">
+          <div className="flex flex-row items-center gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search invoices..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 h-10 bg-white/5 border-white/10 focus:border-primary/50 text-sm"
+              />
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-10 gap-2 px-4 border-white/10 bg-white/5 whitespace-nowrap">
+                  <Filter className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-xs font-semibold uppercase hidden sm:inline">
+                    {statusFilter === "all" ? "All Status" : statusFilter}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-zinc-900 border-white/10">
+                <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Filter by Status</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-white/5" />
+                <DropdownMenuItem onClick={() => setStatusFilter("all")} className="cursor-pointer">All Statuses</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("unpaid")} className="cursor-pointer">Pending</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("paid")} className="cursor-pointer">Paid</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("cancelled")} className="cursor-pointer">Cancelled</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button 
+              onClick={handleExport} 
+              variant="outline" 
+              size="sm" 
+              className="h-10 gap-2 px-4 border-white/10 bg-white/5 whitespace-nowrap"
+            >
+              <Download className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-semibold uppercase hidden sm:inline">Export</span>
+            </Button>
+          </div>
+        </div>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  <TableHead className="w-[120px]">
+                    <Button variant="ghost" size="sm" onClick={() => toggleSort("invoice_number")} className="hover:bg-transparent -ml-2">
+                      Invoice # <ArrowUpDown className="ml-2 h-3 w-3" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button variant="ghost" size="sm" onClick={() => toggleSort("client_name")} className="hover:bg-transparent -ml-2">
+                      Client <ArrowUpDown className="ml-2 h-3 w-3" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button variant="ghost" size="sm" onClick={() => toggleSort("amount")} className="hover:bg-transparent -ml-2">
+                      Amount <ArrowUpDown className="ml-2 h-3 w-3" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button variant="ghost" size="sm" onClick={() => toggleSort("due_date")} className="hover:bg-transparent -ml-2">
+                      Due Date <ArrowUpDown className="ml-2 h-3 w-3" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Auto-Chase</TableHead>
+                  <TableHead>Next Reminder</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAndSortedInvoices.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                      No invoices found matching your criteria.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredAndSortedInvoices.map((invoice) => (
                 <TableRow key={invoice.id}>
                   <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                   <TableCell>
@@ -494,9 +611,11 @@ export const InvoiceTable = ({ invoices, onUpdate }: InvoiceTableProps) => {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

@@ -6,7 +6,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Mail, Lock, ArrowLeft } from "lucide-react";
+import { Loader2, Mail, Lock, ArrowLeft, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { User, Session } from "@supabase/supabase-js";
 import { SEO } from "../components/SEO";
 
@@ -16,6 +16,7 @@ export default function Settings() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [emailSettings, setEmailSettings] = useState({
     smtp_user: "",
@@ -379,22 +380,37 @@ export default function Settings() {
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-primary" aria-hidden="true" />
                         <Input
                           id="smtp_password"
-                          type="password"
+                          type={showPassword ? "text" : "password"}
                           placeholder="16-character app password"
                           value={emailSettings.smtp_password}
                           onChange={(e) =>
                             setEmailSettings({ ...emailSettings, smtp_password: e.target.value })
                           }
-                          className="pl-10 bg-background/50 border-primary/20 focus:border-primary focus:ring-primary/20"
+                          className="pl-10 pr-10 bg-background/50 border-primary/20 focus:border-primary focus:ring-primary/20"
                           required
                           autoComplete="current-password"
                           aria-required="true"
                           aria-describedby="password-hint"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-3 text-muted-foreground hover:text-primary transition-colors"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
                       </div>
-                      <p id="password-hint" className="text-xs text-muted-foreground">
-                        Use your App Password, not your regular email password
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <ShieldCheck className="h-3.5 w-3.5 text-green-500" />
+                        <p id="password-hint" className="text-xs text-muted-foreground">
+                          Your credentials are <span className="text-green-500 font-medium">encrypted at rest</span> using AES-256. Use your App Password, not your regular email password.
+                        </p>
+                      </div>
                     </div>
                   </>
                 )}

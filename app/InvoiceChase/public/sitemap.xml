@@ -6,7 +6,7 @@
   
   <!-- Homepage -->
   <url>
-    <loc>https://paychaser.app/</loc>
+    <loc>https://onxittqxvkzwetazcimx.supabase.co/invoicechase/</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
@@ -14,7 +14,7 @@
   
   <!-- Authentication -->
   <url>
-    <loc>https://paychaser.app/auth</loc>
+    <loc>https://onxittqxvkzwetazcimx.supabase.co/invoicechase/auth</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -22,7 +22,7 @@
   
   <!-- Settings -->
   <url>
-    <loc>https://paychaser.app/settings</loc>
+    <loc>https://onxittqxvkzwetazcimx.supabase.co/invoicechase/settings</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -30,7 +30,7 @@
   
   <!-- Send Email -->
   <url>
-    <loc>https://paychaser.app/send-email</loc>
+    <loc>https://onxittqxvkzwetazcimx.supabase.co/invoicechase/send-email</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>

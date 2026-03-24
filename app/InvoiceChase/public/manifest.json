@@ -1,6 +1,6 @@
 {
-  "name": "PayChaser - Automated Invoice Payment Reminders",
-  "short_name": "PayChaser",
+  "name": "Invoice Chase - Automated Invoice Payment Reminders",
+  "short_name": "Invoice Chase",
   "description": "Stop chasing payments manually. Automate invoice reminders and get paid faster.",
   "start_url": "/",
   "display": "standalone",

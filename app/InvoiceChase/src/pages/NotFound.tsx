@@ -13,7 +13,7 @@ const NotFound = () => {
     <>
       <SEO 
         title="Page Not Found"
-        description="The page you're looking for doesn't exist. Return to PayChaser dashboard to manage your invoices."
+        description="The page you're looking for doesn't exist. Return to Invoice Chase dashboard to manage your invoices."
         noIndex={true}
       />
       
