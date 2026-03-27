@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { invoiceFormSchema } from "../../shared/schema";
 import { Button } from "./ui/button";
@@ -63,7 +63,10 @@ function isoDate(input) {
   return new Date(input).toISOString();
 }
 
-export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
+import { useRouter } from "next/navigation";
+
+export function InvoiceForm({ open, onOpenChange, invoice, mode = "create", isPage = false }) {
+  const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -93,8 +96,7 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
     name: "items",
   });
 
-  const watchedItems = form.watch("items");
-  const watchedTaxRate = form.watch("taxRate") || "0";
+  // watchedItems moved down near calculation for clarity
 
   // Reset form when invoice prop changes
   useEffect(() => {
@@ -138,30 +140,36 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
     }
   }, [invoice, mode, form, open]);
 
-  // Calculate totals automatically
-  useEffect(() => {
-    const subtotal = watchedItems.reduce((sum, item) => {
-      const quantity = parseFloat(item.quantity) || 0;
-      const rate = parseFloat(item.rate) || 0;
-      return sum + (quantity * rate);
-    }, 0);
+  const watchedItems = useWatch({
+    control: form.control,
+    name: "items",
+  });
+  const watchedTaxRate = useWatch({
+    control: form.control,
+    name: "taxRate",
+    defaultValue: "0",
+  });
 
-    const taxRate = parseFloat(watchedTaxRate) || 0;
-    const taxAmount = (subtotal * taxRate) / 100;
-    const total = subtotal + taxAmount;
+  // Calculate totals automatically based on watched items and tax rate (NOT via useEffect as it causes loops)
+  const totals = (watchedItems || []).reduce((acc, item) => {
+    const qty = parseFloat(item.quantity) || 0;
+    const rate = parseFloat(item.rate) || 0;
+    const amount = qty * rate;
+    acc.subtotal += amount;
+    acc.itemAmounts.push(amount.toFixed(2));
+    return acc;
+  }, { subtotal: 0, itemAmounts: [] });
 
-    form.setValue("subtotal", subtotal.toFixed(2));
-    form.setValue("taxAmount", taxAmount.toFixed(2));
-    form.setValue("total", total.toFixed(2));
+  const taxRateVal = parseFloat(watchedTaxRate) || 0;
+  const taxAmountVal = (totals.subtotal * taxRateVal) / 100;
+  const totalVal = totals.subtotal + taxAmountVal;
 
-    // Update individual item amounts
-    watchedItems.forEach((item, index) => {
-      const quantity = parseFloat(item.quantity) || 0;
-      const rate = parseFloat(item.rate) || 0;
-      const amount = quantity * rate;
-      form.setValue(`items.${index}.amount`, amount.toFixed(2));
-    });
-  }, [watchedItems, watchedTaxRate, form]);
+  const displayTotals = {
+    subtotal: totals.subtotal.toFixed(2),
+    taxAmount: taxAmountVal.toFixed(2),
+    total: totalVal.toFixed(2),
+    itemAmounts: totals.itemAmounts
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -213,7 +221,11 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
         title: "Success",
         description: "Invoice created successfully",
       });
-      onOpenChange(false);
+      if (isPage) {
+        router.push("/invoicemaker/invoices");
+      } else if (onOpenChange) {
+        onOpenChange(false);
+      }
     },
     onError: (error) => {
       toast({
@@ -277,7 +289,11 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
         title: "Success",
         description: "Invoice updated successfully",
       });
-      onOpenChange(false);
+      if (isPage) {
+        router.push("/invoicemaker/invoices");
+      } else if (onOpenChange) {
+        onOpenChange(false);
+      }
     },
     onError: (error) => {
       toast({
@@ -289,8 +305,23 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
   });
 
   const onSubmit = (data) => {
+    // Recalculate totals to ensure they are up to date in the submitted data
+    const subtotal = data.items.reduce((acc, item) => {
+      return acc + (parseFloat(item.quantity) || 0) * (parseFloat(item.rate) || 0);
+    }, 0);
+    const taxRate = parseFloat(data.taxRate) || 0;
+    const taxAmount = (subtotal * taxRate) / 100;
+    const total = subtotal + taxAmount;
+
     const submissionData = {
       ...data,
+      subtotal: subtotal.toFixed(2),
+      taxAmount: taxAmount.toFixed(2),
+      total: total.toFixed(2),
+      items: (data.items || []).map(item => ({
+        ...item,
+        amount: ( (parseFloat(item.quantity) || 0) * (parseFloat(item.rate) || 0) ).toFixed(2)
+      })),
       dueDate: data.dueDate instanceof Date ? data.dueDate : new Date(data.dueDate),
     };
 
@@ -301,16 +332,26 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto modal-bg">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
-            {mode === "edit" ? "Edit Invoice" : "Create New Invoice"}
-          </DialogTitle>
-        </DialogHeader>
+  const handleCancel = () => {
+    if (isPage) {
+      router.back();
+    } else if (onOpenChange) {
+      onOpenChange(false);
+    }
+  };
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 py-4">
+  const formContent = (
+    <div className={isPage ? "max-w-5xl mx-auto py-8 px-4" : "py-4"}>
+      <div className="flex flex-col gap-2 mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">
+          {mode === "edit" ? "Edit Invoice" : "Create New Invoice"}
+        </h1>
+        <p className="text-muted-foreground">
+          {mode === "edit" ? "Update your invoice details below." : "Fill in the details to generate a professional invoice."}
+        </p>
+      </div>
+
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {/* Row 1: Business Info & Invoice Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="recent-invoices-card">
@@ -450,6 +491,13 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Header labels for service items */}
+              <div className="hidden md:grid grid-cols-5 gap-4 px-1 mb-2">
+                <div className="col-span-2 text-sm font-semibold text-muted-foreground">Description</div>
+                <div className="text-sm font-semibold text-muted-foreground">Quantity</div>
+                <div className="text-sm font-semibold text-muted-foreground">Rate</div>
+                <div className="text-sm font-semibold text-muted-foreground">Amount</div>
+              </div>
               {fields.map((field, index) => (
                 <div key={field.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                   <div className="md:col-span-2">
@@ -475,11 +523,12 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <Input
+                    <div className="flex-1 px-3 py-2 border rounded-md bg-muted text-sm text-foreground">
+                      {displayTotals.itemAmounts[index] || "0.00"}
+                    </div>
+                    <input
+                      type="hidden"
                       {...form.register(`items.${index}.amount`)}
-                      readOnly
-                      className="bg-muted"
-                      placeholder="Amount"
                     />
                     {fields.length > 1 && (
                       <Button
@@ -502,33 +551,42 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <Card className="recent-invoices-card">
               <CardHeader>
-                <CardTitle>Tax</CardTitle>
+                <CardTitle>Tax & Discounts</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="relative">
-                  <Input
-                    id="taxRate"
-                    type="number"
-                    step="0.01"
-                    {...form.register("taxRate")}
-                    placeholder="Tax Rate (%)"
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="taxRate">Tax Rate (%)</Label>
+                    <div className="relative">
+                      <Input
+                        id="taxRate"
+                        type="number"
+                        step="0.01"
+                        {...form.register("taxRate")}
+                        placeholder="0.00"
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
             <div className="recent-invoices-card p-6 rounded-lg space-y-4">
               <div className="flex justify-between text-lg">
                 <span className="text-muted-foreground">Subtotal:</span>
-                <span className="font-semibold text-foreground">${form.watch("subtotal")}</span>
+                <span className="font-semibold text-foreground">${displayTotals.subtotal}</span>
               </div>
               <div className="flex justify-between text-lg">
                 <span className="text-muted-foreground">Tax:</span>
-                <span className="font-semibold text-foreground">${form.watch("taxAmount")}</span>
+                <span className="font-semibold text-foreground">${displayTotals.taxAmount}</span>
               </div>
               <div className="flex justify-between text-2xl font-bold border-t border-border pt-4 mt-4">
                 <span className="text-foreground">Total:</span>
-                <span className="text-primary">${form.watch("total")}</span>
+                <span className="text-primary">${displayTotals.total}</span>
               </div>
+              <input type="hidden" {...form.register("subtotal")} />
+              <input type="hidden" {...form.register("taxAmount")} />
+              <input type="hidden" {...form.register("total")} />
             </div>
           </div>
 
@@ -537,7 +595,7 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={handleCancel}
             >
               Cancel
             </Button>
@@ -550,6 +608,15 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create" }) {
             </Button>
           </div>
         </form>
+    </div>
+  );
+
+  if (isPage) return formContent;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto modal-bg">
+        {formContent}
       </DialogContent>
     </Dialog>
   );

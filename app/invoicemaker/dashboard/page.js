@@ -80,24 +80,24 @@ export default function Dashboard() {
         />
         <StatCard
           title="Paid Amount"
-          value={formatCurrency(stats?.paidAmount || 0)}
+          value={stats?.paidAmount > 0 ? formatCurrency(stats.paidAmount) : "—"}
           icon={DollarSign}
           loading={statsLoading}
-          color="text-green-600 dark:text-[#4ade80]"
+          color={stats?.paidAmount > 0 ? "text-green-600 dark:text-[#4ade80]" : "text-muted-foreground"}
         />
         <StatCard
           title="Pending"
-          value={formatCurrency(stats?.pendingAmount || 0)}
+          value={stats?.pendingAmount > 0 ? formatCurrency(stats.pendingAmount) : "—"}
           icon={Clock}
           loading={statsLoading}
-          color="text-orange-600 dark:text-[#fb923c]"
+          color={stats?.pendingAmount > 0 ? "text-orange-600 dark:text-[#fb923c]" : "text-muted-foreground"}
         />
         <StatCard
           title="Overdue"
-          value={formatCurrency(stats?.overdueAmount || 0)}
+          value={stats?.overdueAmount > 0 ? formatCurrency(stats.overdueAmount) : "—"}
           icon={AlertTriangle}
           loading={statsLoading}
-          color="text-red-600 dark:text-[#f87171]"
+          color={stats?.overdueAmount > 0 ? "text-red-600 dark:text-[#f87171]" : "text-muted-foreground"}
         />
       </div>
 
@@ -130,11 +130,7 @@ export default function Dashboard() {
               <FileText className="h-8 w-8 text-gray-400" />
             </div>
             <h3 className="no-invoices-title">No Invoices Found</h3>
-            <p className="no-invoices-description">It looks like you haven't created any invoices yet. Get started by creating your first one.</p>
-            <Link href="/invoicemaker/invoices/new" className="common-button">
-              <Plus className="h-4 w-4 mr-2" />
-              Create First Invoice
-            </Link>
+            <p className="no-invoices-description">It looks like you haven&apos;t created any invoices yet. Use the button above to create your first one.</p>
           </div>
         ) : (
           <table className="recent-invoices-table">
@@ -152,8 +148,8 @@ export default function Dashboard() {
               {recentInvoices.map((invoice) => (
                 <tr key={invoice.id}>
                   <td>{invoice.invoiceNumber}</td>
-                  <td>{invoice.to?.name || 'N/A'}</td>
-                  <td>{formatCurrency(invoice.items.reduce((sum, item) => sum + (item.quantity * item.rate), 0))}</td>
+                  <td>{invoice.clientName || 'N/A'}</td>
+                  <td>{formatCurrency(invoice.total || 0)}</td>
                   <td><StatusBadge status={invoice.status} /></td>
                   <td>{new Date(invoice.createdAt).toLocaleDateString()}</td>
                   <td>

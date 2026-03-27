@@ -56,7 +56,7 @@ export default function InvoiceNav() {
             </div>
             <div className="h-5 w-px bg-border" />
             <div className="text-sm text-muted-foreground">
-              Invoice App
+              InvoiceMaker
             </div>
           </div>
 

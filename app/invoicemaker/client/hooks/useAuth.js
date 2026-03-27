@@ -8,8 +8,8 @@ export function useAuth() {
     // Simulate authentication check
     const mockUser = {
       id: 1,
-      firstName: "Demo",
-      lastName: "User",
+      firstName: "Business",
+      lastName: "Owner",
       email: "demo@example.com",
       subscriptionStatus: "free"
     };

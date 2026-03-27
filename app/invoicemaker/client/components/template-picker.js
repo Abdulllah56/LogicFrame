@@ -43,14 +43,19 @@ export function TemplatePicker({ invoice, onGenerate, onClose }) {
       activeClass: 'ring-gray-500'
     },
     elegant: {
-      previewClass: 'bg-gradient-to-r from-pruple-500 to-purple-700',
-      buttonClass: 'bg-purple-600 hover:bg-purple-700',
-      activeClass: 'ring-purple-500'
+      previewClass: 'bg-indigo-900',
+      buttonClass: 'bg-indigo-600 hover:bg-indigo-700',
+      activeClass: 'ring-indigo-500'
     },
     sleek: {
       previewClass: 'bg-gradient-to-r from-green-500 to-green-700',
       buttonClass: 'bg-green-600 hover:bg-green-700',
       activeClass: 'ring-green-500'
+    },
+    corporate: {
+      previewClass: 'bg-slate-800',
+      buttonClass: 'bg-slate-700 hover:bg-slate-800',
+      activeClass: 'ring-slate-500'
     }
   };
 
@@ -150,10 +155,9 @@ export function TemplatePicker({ invoice, onGenerate, onClose }) {
               <div className="border-l-4 pl-6" style={{ borderColor: template === 'minimal' ? '#374151' : templateStyles[template].buttonClass.split(' ')[0].replace('bg-', '#') }}>
                 <h3 className={`text-lg font-bold mb-4 text-gray-900`}>FROM</h3>
                 <div className="space-y-2">
-                  <div className="font-semibold text-lg text-gray-900">Your Business Name</div>
-                  <div className="text-gray-600">hello@business.com</div>
-                  <div className="text-gray-600">123 Business Street</div>
-                  <div className="text-gray-600">City, Country</div>
+                  <div className="font-semibold text-lg text-gray-900">{invoice.businessName || 'Your Business Name'}</div>
+                  <div className="text-gray-600">{invoice.businessEmail || 'hello@business.com'}</div>
+                  <div className="text-gray-600">{invoice.businessCity || 'City, Country'}</div>
                 </div>
               </div>
               <div className="border-l-4 pl-6" style={{ borderColor: template === 'minimal' ? '#374151' : templateStyles[template].buttonClass.split(' ')[0].replace('bg-', '#') }}>

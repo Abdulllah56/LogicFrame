@@ -65,8 +65,6 @@ export function InvoiceTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("date-desc");
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingInvoice, setEditingInvoice] = useState(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -163,10 +161,7 @@ export function InvoiceTable() {
     }
   };
 
-  const handleEdit = (invoice) => {
-    setEditingInvoice(invoice);
-    setIsFormOpen(true);
-  };
+  // handleEdit logic removed in favor of direct Links
 
   const handleDelete = (invoiceId) => {
     if (confirm("Are you sure you want to delete this invoice?")) {
@@ -232,8 +227,7 @@ export function InvoiceTable() {
   };
 
   const handleCloseForm = () => {
-    setIsFormOpen(false);
-    setEditingInvoice(null);
+    // No longer needed
   };
 
   if (isLoading) {
@@ -254,11 +248,13 @@ export function InvoiceTable() {
           <p className="text-muted-foreground">Manage your invoices here.</p>
         </div>
         <Button
-          onClick={() => setIsFormOpen(true)}
+          asChild
           className="common-button"
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Invoice
+          <Link href="/invoicemaker/invoices/new">
+            <Plus className="w-4 h-4 mr-2" />
+            Create Invoice
+          </Link>
         </Button>
       </div>
 
@@ -324,11 +320,7 @@ export function InvoiceTable() {
                   <div className="flex flex-col items-center gap-4">
                     <FileText className="h-16 w-16 text-muted-foreground/30" />
                     <h3 className="text-xl font-semibold text-foreground">No invoices yet</h3>
-                    <p className="text-muted-foreground">Create your first invoice to get started.</p>
-                    <Button onClick={() => setIsFormOpen(true)} className="common-button mt-4">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Invoice
-                    </Button>
+                    <p className="text-muted-foreground">Check the button above to create your first invoice and get started.</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -369,9 +361,11 @@ export function InvoiceTable() {
                             View Details
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEdit(invoice)} className="flex items-center gap-2 cursor-pointer">
-                          <Edit className="w-4 h-4" />
-                          Edit
+                        <DropdownMenuItem asChild>
+                          <Link href={`/invoicemaker/invoices/${invoice.id}/edit`} className="flex items-center gap-2 cursor-pointer">
+                            <Edit className="w-4 h-4" />
+                            Edit
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDownloadPDF(invoice)} className="flex items-center gap-2 cursor-pointer">
                           <Download className="w-4 h-4" />
@@ -410,14 +404,6 @@ export function InvoiceTable() {
           </TableBody>
         </Table>
       </div>
-
-      {/* Invoice Form Modal */}
-      <InvoiceForm
-        open={isFormOpen}
-        onOpenChange={handleCloseForm}
-        invoice={editingInvoice || undefined}
-        mode={editingInvoice ? "edit" : "create"}
-      />
 
       {/* Template Picker Dialog */}
       {showTemplatePicker && selectedInvoice && (

@@ -43,11 +43,11 @@ const templateStyles = {
     accent: '#3498db'
   },
   elegant: {
-    primary: '#9b59b6',
-    secondary: '#8e44ad',
-    headerBg: '#9b59b6',
+    primary: '#312e81', // Indigo 900
+    secondary: '#4338ca', // Indigo 700
+    headerBg: '#312e81',
     text: '#ffffff',
-    accent: '#f1c40f'
+    accent: '#818cf8'
   },
   sleek: {
     primary: '#27ae60',
@@ -55,6 +55,13 @@ const templateStyles = {
     headerBg: '#27ae60',
     text: '#ffffff',
     accent: '#1abc9c'
+  },
+  corporate: {
+    primary: '#0f172a', // Slate 900
+    secondary: '#334155', // Slate 700
+    headerBg: '#0f172a',
+    text: '#ffffff',
+    accent: '#38bdf8' // Sky 400
   }
 };
 
@@ -197,9 +204,9 @@ export function StyledInvoicePDF({ invoice, template, logo }) {
         <View style={styles.grid}>
           <View style={styles.column}>
             <Text style={styles.label}>FROM</Text>
-            <Text style={[styles.value, { fontWeight: 'bold' }]}>{invoice.businessName || 'Your Company Name'}</Text>
-            <Text style={styles.value}>{invoice.businessEmail || 'your@email.com'}</Text>
-            <Text style={styles.value}>{invoice.businessCity || 'Your City'}</Text>
+            <Text style={[styles.value, { fontWeight: 'bold' }]}>{invoice.businessName}</Text>
+            <Text style={styles.value}>{invoice.businessEmail}</Text>
+            <Text style={styles.value}>{invoice.businessCity}</Text>
           </View>
           <View style={styles.column}>
             <Text style={styles.label}>BILL TO</Text>
