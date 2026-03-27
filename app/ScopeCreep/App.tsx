@@ -22,8 +22,7 @@ const App: React.FC = () => {
 
   const { isGuest, usesLeft, limit, tryUse, requireAuth, showModal, authOnlyFeature, closeModal } = useGuestLimit('scopecreep');
 
-  // API Base URL
-  const API_URL = '/api';
+
 
   // Load Supabase Auth Session
   useEffect(() => {
@@ -54,6 +53,7 @@ const App: React.FC = () => {
         };
         setCurrentUser(user);
         fetchProjects(user.id);
+        loadSettings(user.id);
       } else {
         setCurrentUser(null);
         setProjects([]);
@@ -67,11 +67,52 @@ const App: React.FC = () => {
   const fetchProjects = async (userId: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/projects?userId=${userId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setProjects(data);
-      }
+      const { data: projectsData, error: projError } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          deliverables(*),
+          requests(*)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (projError) throw projError;
+
+      const mappedProjects: Project[] = (projectsData || []).map((p: any) => ({
+        id: p.id,
+        projectName: p.project_name,
+        clientName: p.client_name,
+        clientEmail: p.client_email,
+        projectPrice: Number(p.project_price),
+        hourlyRate: Number(p.hourly_rate),
+        currency: p.currency,
+        timeline: p.timeline,
+        startDate: p.start_date ? String(p.start_date).split('T')[0] : '',
+        endDate: p.end_date ? String(p.end_date).split('T')[0] : '',
+        status: p.status,
+        deliverables: (p.deliverables || []).map((d: any) => ({
+          id: d.id,
+          description: d.description,
+          category: d.category,
+          status: d.status,
+          type: d.scope_type
+        })),
+        requests: (p.requests || []).sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).map((r: any) => ({
+          id: r.id,
+          requestText: r.request_text,
+          date: r.request_date ? String(r.request_date).split('T')[0] : '',
+          category: r.category,
+          scopeStatus: r.scope_status,
+          estimatedHours: Number(r.estimated_hours),
+          estimatedCost: Number(r.estimated_cost),
+          timelineImpact: r.timeline_impact,
+          justification: r.notes,
+          status: r.status
+        }))
+      }));
+
+      setProjects(mappedProjects);
     } catch (e) {
       console.error("Failed to fetch projects", e);
     } finally {
@@ -79,14 +120,50 @@ const App: React.FC = () => {
     }
   };
 
-  const loadSettings = (userId: string) => {
-    const saved = localStorage.getItem(`scp_settings_${userId}`);
-    if (saved) {
-      try {
-        setUserSettings(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse settings", e);
+  const loadSettings = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('scopecreep_user_settings')
+        .select('settings')
+        .eq('user_id', userId)
+        .single();
+      
+      if (data?.settings) {
+        setUserSettings(data.settings);
+        // Backup to localStorage
+        localStorage.setItem(`scp_settings_${userId}`, JSON.stringify(data.settings));
+      } else {
+        // Fallback to localStorage for legacy users
+        const saved = localStorage.getItem(`scp_settings_${userId}`);
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            setUserSettings(parsed);
+            // Save to DB now
+            handleSaveSettings(parsed, userId);
+          } catch (e) {}
+        }
       }
+    } catch (e) {
+      console.error("Failed to load settings from DB", e);
+    }
+  };
+
+  const handleSaveSettings = async (newSettings: UserSettings, userIdOverride?: string) => {
+    const userId = userIdOverride || currentUser?.id;
+    if (!userId) return;
+
+    setUserSettings(newSettings);
+    localStorage.setItem(`scp_settings_${userId}`, JSON.stringify(newSettings));
+
+    try {
+      await supabase.from('scopecreep_user_settings').upsert({
+        user_id: userId,
+        settings: newSettings,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.error("Failed to save settings to DB", e);
     }
   };
 
@@ -101,15 +178,61 @@ const App: React.FC = () => {
   const saveProjectToBackend = async (project: Project) => {
     if (!currentUser) return;
     try {
-      await fetch(`${API_URL}/projects`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUser.id, project })
+      const { error: pError } = await supabase.from('projects').upsert({
+        id: project.id,
+        user_id: currentUser.id,
+        project_name: project.projectName,
+        client_name: project.clientName,
+        client_email: project.clientEmail,
+        project_price: project.projectPrice,
+        hourly_rate: project.hourlyRate,
+        currency: project.currency,
+        timeline: project.timeline,
+        start_date: project.startDate || null,
+        end_date: project.endDate || null,
+        status: project.status
       });
-      // Reload to ensure sync
-      fetchProjects(currentUser.id);
+
+      if (pError) throw pError;
+
+      // Clean out existing children to run fresh sync (mimicking original backend logic)
+      await supabase.from('deliverables').delete().eq('project_id', project.id);
+      await supabase.from('requests').delete().eq('project_id', project.id);
+
+      if (project.deliverables && project.deliverables.length > 0) {
+        await supabase.from('deliverables').insert(
+          project.deliverables.map(d => ({
+            id: d.id,
+            project_id: project.id,
+            description: d.description,
+            category: d.category,
+            status: d.status,
+            scope_type: d.type
+          }))
+        );
+      }
+
+      if (project.requests && project.requests.length > 0) {
+        await supabase.from('requests').insert(
+          project.requests.map(r => ({
+            id: r.id,
+            project_id: project.id,
+            request_text: r.requestText,
+            request_date: r.date || null,
+            category: r.category,
+            scope_status: r.scopeStatus,
+            estimated_hours: r.estimatedHours || 0,
+            estimated_cost: r.estimatedCost || 0,
+            timeline_impact: r.timelineImpact,
+            notes: r.justification || '',
+            status: r.status
+          }))
+        );
+      }
     } catch (e) {
       console.error("Failed to save project", e);
+      // Rollback optimistic update on failure by reloading true state
+      fetchProjects(currentUser.id);
     }
   };
 
@@ -138,10 +261,14 @@ const App: React.FC = () => {
     saveProjectToBackend(updatedProject);
   };
 
-  const handleSaveSettings = (newSettings: UserSettings) => {
+  const handleDeleteProject = async (projectId: string) => {
+    setProjects(prev => prev.filter(p => p.id !== projectId));
     if (currentUser) {
-      setUserSettings(newSettings);
-      localStorage.setItem(`scp_settings_${currentUser.id}`, JSON.stringify(newSettings));
+      try {
+        await supabase.from('projects').delete().eq('id', projectId).eq('user_id', currentUser.id);
+      } catch (e) {
+        console.error("Failed to delete project", e);
+      }
     }
   };
 
@@ -179,6 +306,7 @@ const App: React.FC = () => {
                   projects={projects}
                   onLogout={handleLogout}
                   userName={currentUser?.name || currentUser?.email}
+                  onDeleteProject={handleDeleteProject}
                 />
               }
             />

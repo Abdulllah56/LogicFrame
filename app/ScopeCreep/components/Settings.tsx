@@ -251,8 +251,8 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSave }) => {
             <div className="bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-lg flex gap-2 items-start mt-4">
               <AlertCircle className="text-yellow-500 shrink-0 mt-0.5" size={16} />
               <p className="text-xs text-yellow-500">
-                <strong>Security Note:</strong> Your credentials are stored locally in your browser for this demo.
-                Always revoke App Passwords if you stop using the application.
+                <strong>Security Note:</strong> Your credentials are stored securely in your private account profile.
+                Always use App Passwords for Gmail and revoke them if you stop using the service.
               </p>
             </div>
           </div>

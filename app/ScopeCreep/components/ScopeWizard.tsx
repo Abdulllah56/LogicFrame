@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Project, Deliverable, UserSettings } from '../types';
 import { CATEGORIES } from '../constants';
-import { ArrowLeft, ArrowRight, Plus, Trash2, Check, Calendar, Briefcase, DollarSign, Clock, CheckCircle, XCircle, Pencil, Save, X, Activity, Globe } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Trash2, Check, Calendar, Briefcase, DollarSign, Clock, CheckCircle, XCircle, Pencil, Save, X, Activity, Globe, Sparkles, Loader2, FileText } from 'lucide-react';
 
 interface ScopeWizardProps {
   onSave: (project: Project) => void;
@@ -76,6 +76,12 @@ const ScopeWizard: React.FC<ScopeWizardProps> = ({ onSave, defaultSettings }) =>
     status: 'To Do' as Deliverable['status']
   });
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+
+  // AI Import State
+  const [showAiImport, setShowAiImport] = useState(false);
+  const [aiImportText, setAiImportText] = useState('');
+  const [aiImporting, setAiImporting] = useState(false);
+  const [aiImportError, setAiImportError] = useState('');
 
   // Step 3: Out of Scope State
   const [outScopeCustomItems, setOutScopeCustomItems] = useState<Deliverable[]>([]);
@@ -157,6 +163,64 @@ const ScopeWizard: React.FC<ScopeWizardProps> = ({ onSave, defaultSettings }) =>
       setSelectedCommonExclusions(selectedCommonExclusions.filter(e => e !== exclusion));
     } else {
       setSelectedCommonExclusions([...selectedCommonExclusions, exclusion]);
+    }
+  };
+
+  const handleAiImport = async () => {
+    if (!aiImportText.trim() || aiImportText.trim().length < 20) {
+      setAiImportError('Please paste at least a few sentences of project text.');
+      return;
+    }
+    setAiImporting(true);
+    setAiImportError('');
+    try {
+      const res = await fetch('/api/ai/generate-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'scope-import', text: aiImportText })
+      });
+      let data;
+      try {
+        data = await res.json();
+      } catch (err: any) {
+        throw new Error('AI endpoint not found or proxy error. Ensure Next.js server is proxying correctly.');
+      }
+      
+      if (!res.ok) throw new Error(data.details || data.error || 'AI import failed');
+
+      let addedCount = 0;
+      if (data.inScope && Array.isArray(data.inScope)) {
+        const newItems: Deliverable[] = data.inScope.map((item: any, idx: number) => ({
+          id: `ai-in-${Date.now()}-${idx}`,
+          description: item.description,
+          category: CATEGORIES.includes(item.category) ? item.category : 'Other',
+          status: 'To Do' as const,
+          type: 'IN_SCOPE' as const,
+        }));
+        setInScopeItems(prev => [...prev, ...newItems]);
+        addedCount += newItems.length;
+      }
+      if (data.outScope && Array.isArray(data.outScope)) {
+        const newExclusions: Deliverable[] = data.outScope.map((item: any, idx: number) => ({
+          id: `ai-out-${Date.now()}-${idx}`,
+          description: item.description,
+          category: 'Other',
+          status: 'To Do' as const,
+          type: 'OUT_SCOPE' as const,
+        }));
+        setOutScopeCustomItems(prev => [...prev, ...newExclusions]);
+      }
+
+      if (addedCount === 0) {
+        setAiImportError('AI could not extract deliverables. Try more detailed text.');
+      } else {
+        setShowAiImport(false);
+        setAiImportText('');
+      }
+    } catch (e: any) {
+      setAiImportError(e.message || 'Failed to connect to AI service.');
+    } finally {
+      setAiImporting(false);
     }
   };
 
@@ -370,6 +434,44 @@ const ScopeWizard: React.FC<ScopeWizardProps> = ({ onSave, defaultSettings }) =>
               In Scope Deliverables
             </h2>
             <p className="text-muted-foreground mb-6">What specifically are you delivering? Be as detailed as possible.</p>
+
+            {/* AI Import Button */}
+            <button
+              onClick={() => setShowAiImport(!showAiImport)}
+              className="mb-4 px-4 py-2.5 bg-purple-600/10 text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-600/20 transition-colors flex items-center gap-2 font-medium text-sm w-full justify-center"
+            >
+              <Sparkles size={18} />
+              {showAiImport ? 'Close AI Import' : 'Import with AI ✨ — paste project brief to auto-extract'}
+            </button>
+
+            {showAiImport && (
+              <div className="mb-6 p-5 bg-purple-500/5 border border-purple-500/20 rounded-xl animate-in fade-in slide-in-from-top-2">
+                <h3 className="font-bold text-purple-400 mb-2 flex items-center gap-2">
+                  <FileText size={18} /> AI Magic Scope Import
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Paste your project brief, contract, or proposal text below. AI will extract deliverables automatically.
+                </p>
+                <textarea
+                  className="w-full p-3 bg-muted/50 border border-border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-foreground placeholder:text-muted-foreground text-sm"
+                  rows={6}
+                  placeholder={`e.g. "We will design and develop a 5-page website including Home, About, Services, Portfolio, and Contact pages. The design will be mobile-responsive and include 2 rounds of revisions. E-commerce functionality, blog features, and ongoing maintenance are not included in this scope..."`}
+                  value={aiImportText}
+                  onChange={e => setAiImportText(e.target.value)}
+                />
+                {aiImportError && (
+                  <p className="text-destructive text-sm mt-2">{aiImportError}</p>
+                )}
+                <button
+                  onClick={handleAiImport}
+                  disabled={aiImporting || !aiImportText.trim()}
+                  className="mt-3 w-full py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium disabled:opacity-50"
+                >
+                  {aiImporting ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  {aiImporting ? 'Extracting deliverables...' : 'Extract Deliverables'}
+                </button>
+              </div>
+            )}
 
             <div className={`bg-muted/30 p-4 rounded-lg border ${editingItemId ? 'border-primary ring-1 ring-primary/20' : 'border-border'} mb-6 transition-colors`}>
               {editingItemId && <div className="text-xs font-bold text-primary uppercase mb-2">Editing Item</div>}

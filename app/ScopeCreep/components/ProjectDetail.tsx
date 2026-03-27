@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { Project, Request, EmailTemplateType, UserSettings, AiEmailConfig } from '../types';
 import RequestLogForm from './RequestLogForm';
-import { ArrowLeft, Check, Copy, Mail, AlertTriangle, Plus, FileText, LayoutDashboard, Send, Loader2, ExternalLink, RefreshCw, Sparkles, Wand2 } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Mail, AlertTriangle, Plus, FileText, LayoutDashboard, Send, Loader2, ExternalLink, RefreshCw, Sparkles, Wand2, FileDown, ThumbsUp, ThumbsDown, Tag, Clock } from 'lucide-react';
+import { getCurrencySymbol } from '../utils';
 
 interface ProjectDetailProps {
     projects: Project[];
@@ -91,6 +92,80 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projects, updateProject, 
         setActiveTab('requests');
     };
 
+    const handleStatusChange = (requestId: string, newStatus: Request['status']) => {
+        if (!project) return;
+        const updatedProject = {
+            ...project,
+            requests: project.requests.map(r =>
+                r.id === requestId ? { ...r, status: newStatus } : r
+            )
+        };
+        updateProject(updatedProject);
+    };
+
+    const getStatusBadge = (status: Request['status']) => {
+        const styles: Record<string, string> = {
+            'Pending': 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+            'Quoted': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+            'Approved': 'bg-green-500/10 text-green-500 border-green-500/20',
+            'Declined': 'bg-destructive/10 text-destructive border-destructive/20',
+            'Discussion': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+        };
+        return styles[status] || 'bg-muted text-muted-foreground border-border';
+    };
+
+    const handleExportPDF = () => {
+        if (!project) return;
+        const sym = getCurrencySymbol(project.currency);
+        const inScope = project.deliverables.filter(d => d.type === 'IN_SCOPE');
+        const outScope = project.deliverables.filter(d => d.type === 'OUT_SCOPE');
+        const approvedExtra = project.requests.filter(r => r.status === 'Approved' && r.scopeStatus === 'OUT_SCOPE').reduce((s, r) => s + r.estimatedCost, 0);
+
+        const html = `<!DOCTYPE html><html><head><title>Scope Report - ${project.projectName}</title>
+        <style>
+            body{font-family:'Segoe UI',system-ui,sans-serif;max-width:800px;margin:0 auto;padding:40px;color:#1a1a2e;line-height:1.6}
+            h1{color:#0d0d2b;border-bottom:3px solid #00d9ff;padding-bottom:12px;font-size:28px}
+            h2{color:#0d0d2b;margin-top:32px;font-size:20px;border-bottom:1px solid #e2e8f0;padding-bottom:8px}
+            .meta{color:#64748b;font-size:14px;margin-bottom:24px}
+            .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+            .card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px}
+            .card h3{font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px}
+            .card .val{font-size:24px;font-weight:700;color:#0d0d2b}
+            .card .val.red{color:#ef4444}.card .val.green{color:#22c55e}
+            table{width:100%;border-collapse:collapse;margin:12px 0}
+            th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:14px}
+            th{background:#f1f5f9;font-weight:600;color:#334155}
+            .badge{display:inline-block;padding:2px 10px;border-radius:9999px;font-size:12px;font-weight:600}
+            .in{background:#dcfce7;color:#16a34a}.out{background:#fee2e2;color:#ef4444}
+            .pending{background:#fef3c7;color:#d97706}.approved{background:#dcfce7;color:#16a34a}.declined{background:#fee2e2;color:#ef4444}.quoted{background:#dbeafe;color:#2563eb}
+            ul{padding-left:20px}li{margin:6px 0;font-size:14px}
+            .footer{margin-top:40px;padding-top:16px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px;text-align:center}
+            @media print{body{padding:20px}}
+        </style></head><body>
+        <h1>📋 Scope Report</h1>
+        <div class="meta"><strong>${project.projectName}</strong> &bull; ${project.clientName} &bull; ${project.clientEmail}<br>
+        Timeline: ${project.startDate} → ${project.endDate} (${project.timeline})</div>
+        <div class="grid">
+            <div class="card"><h3>Original Budget</h3><div class="val">${sym}${project.projectPrice.toLocaleString()}</div></div>
+            <div class="card"><h3>Pending Scope Creep</h3><div class="val red">+${sym}${unpaidTotal.toLocaleString()}</div></div>
+            <div class="card"><h3>Approved Extras</h3><div class="val green">+${sym}${approvedExtra.toLocaleString()}</div></div>
+            <div class="card"><h3>Projected Total</h3><div class="val">${sym}${(project.projectPrice + unpaidTotal + approvedExtra).toLocaleString()}</div></div>
+        </div>
+        <h2>In-Scope Deliverables</h2>
+        <ul>${inScope.map(d => `<li>${d.description} <span class="badge in">${d.category}</span></li>`).join('')}</ul>
+        <h2>Out-of-Scope Exclusions</h2>
+        <ul>${outScope.map(d => `<li>${d.description}</li>`).join('') || '<li>None specified</li>'}</ul>
+        <h2>Change Requests (${project.requests.length})</h2>
+        ${project.requests.length > 0 ? `<table><tr><th>Request</th><th>Status</th><th>Scope</th><th>Cost</th><th>Impact</th></tr>
+        ${project.requests.map(r => `<tr><td>${r.requestText}</td><td><span class="badge ${r.status.toLowerCase()}">${r.status}</span></td><td><span class="badge ${r.scopeStatus === 'IN_SCOPE' ? 'in' : 'out'}">${r.scopeStatus === 'IN_SCOPE' ? 'In Scope' : 'Out of Scope'}</span></td><td>${sym}${r.estimatedCost.toLocaleString()}</td><td>${r.timelineImpact}</td></tr>`).join('')}
+        </table>` : '<p>No change requests logged.</p>'}
+        <div class="footer">Generated by Scope Creep Protector &bull; ${new Date().toLocaleDateString()}</div>
+        </body></html>`;
+
+        const w = window.open('', '_blank');
+        if (w) { w.document.write(html); w.document.close(); w.print(); }
+    };
+
     const handleAiGenerate = async () => {
         if (!project) return;
         if (!requireAuth('AI Custom Email Generator')) return; // Auth gate
@@ -126,13 +201,15 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projects, updateProject, 
             } else {
                 setGeneratedEmail({
                     subject: 'Error generating email',
-                    body: `AI Error: ${data.error}`
+                    body: `AI Error: ${data.details || data.error || 'Quota Exceeded or Unknown Error'}`
                 });
             }
-        } catch (e) {
+        } catch (e: any) {
             setGeneratedEmail({
                 subject: 'Connection Error',
-                body: 'Could not connect to AI service. Ensure server is running.'
+                body: e.message?.includes('Unexpected token') 
+                    ? 'AI endpoint not found or proxy error. Ensure Next.js server is proxying correctly.' 
+                    : (e.message || 'Could not connect to AI service. Ensure server is running.')
             });
         } finally {
             setIsAiGenerating(false);
@@ -313,6 +390,13 @@ ${senderName}`;
                         </div>
                         <div className="flex gap-3">
                             <button
+                                onClick={handleExportPDF}
+                                className="px-4 py-2 bg-white/[0.03] border border-border text-foreground rounded-lg hover:bg-white/[0.05] transition-colors flex items-center gap-2 font-medium"
+                            >
+                                <FileDown size={20} />
+                                Export PDF
+                            </button>
+                            <button
                                 onClick={() => setShowLogModal(true)}
                                 className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 font-medium shadow-sm shadow-primary/20"
                             >
@@ -359,64 +443,130 @@ ${senderName}`;
                 <div className="p-6 sm:p-8 bg-muted/30 min-h-[400px]">
                     {/* OVERVIEW TAB */}
                     {activeTab === 'overview' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in">
-                            <div className="bg-white/[0.02] p-6 rounded-xl border border-border shadow-sm backdrop-blur-md">
-                                <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                                    <LayoutDashboard className="text-muted-foreground" size={20} />
-                                    Financial Summary
-                                </h3>
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                                        <span className="text-muted-foreground">Original Budget</span>
-                                        <span className="font-bold text-foreground">{project.currency || '$'}{project.projectPrice.toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                                        <span className="text-destructive font-medium">Pending Scope Creep</span>
-                                        <span className="font-bold text-destructive">+{project.currency || '$'}{unpaidTotal.toLocaleString()}</span>
-                                    </div>
-                                    <div className="pt-4 border-t border-border flex justify-between items-center">
-                                        <span className="text-foreground font-bold">Projected Total</span>
-                                        <span className="font-bold text-xl text-foreground">{project.currency || '$'}{(project.projectPrice + unpaidTotal).toLocaleString()}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-white/[0.02] p-6 rounded-xl border border-border shadow-sm backdrop-blur-md">
-                                <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                                    <AlertTriangle className="text-muted-foreground" size={20} />
-                                    Scope Health
-                                </h3>
-                                <div className="flex items-center justify-center py-6">
-                                    <div className="relative w-32 h-32">
-                                        <svg className="w-full h-full" viewBox="0 0 36 36">
-                                            <path
-                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                                fill="none"
-                                                stroke="hsl(var(--muted))"
-                                                strokeWidth="3"
-                                            />
-                                            <path
-                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                                fill="none"
-                                                stroke={unpaidTotal > 0 ? "hsl(var(--destructive))" : "hsl(var(--primary))"}
-                                                strokeWidth="3"
-                                                strokeDasharray={`${Math.min((unpaidTotal / project.projectPrice) * 100, 100)}, 100`}
-                                            />
-                                        </svg>
-                                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-                                            <span className={`text-xl font-bold ${unpaidTotal > 0 ? 'text-destructive' : 'text-primary'}`}>
-                                                {((unpaidTotal / project.projectPrice) * 100).toFixed(1)}%
-                                            </span>
-                                            <span className="block text-xs text-muted-foreground">Creep</span>
+                        <div className="space-y-6 animate-in fade-in">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-white/[0.02] p-6 rounded-xl border border-border shadow-sm backdrop-blur-md">
+                                    <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                                        <LayoutDashboard className="text-muted-foreground" size={20} />
+                                        Financial Summary
+                                    </h3>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                                            <span className="text-muted-foreground">Original Budget</span>
+                                            <span className="font-bold text-foreground">{getCurrencySymbol(project.currency)}{project.projectPrice.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                                            <span className="text-destructive font-medium">Pending Scope Creep</span>
+                                            <span className="font-bold text-destructive">+{getCurrencySymbol(project.currency)}{unpaidTotal.toLocaleString()}</span>
+                                        </div>
+                                        <div className="pt-4 border-t border-border flex justify-between items-center">
+                                            <span className="text-foreground font-bold">Projected Total</span>
+                                            <span className="font-bold text-xl text-foreground">{getCurrencySymbol(project.currency)}{(project.projectPrice + unpaidTotal).toLocaleString()}</span>
                                         </div>
                                     </div>
                                 </div>
-                                <p className="text-center text-sm text-muted-foreground">
-                                    {unpaidTotal > 0
-                                        ? "Warning: Scope is expanding beyond original agreement."
-                                        : "Great job! Project is currently within scope."}
-                                </p>
+
+                                <div className="bg-white/[0.02] p-6 rounded-xl border border-border shadow-sm backdrop-blur-md">
+                                    <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                                        <AlertTriangle className="text-muted-foreground" size={20} />
+                                        Scope Health
+                                    </h3>
+                                    <div className="flex items-center justify-center py-6">
+                                        <div className="relative w-32 h-32">
+                                            <svg className="w-full h-full" viewBox="0 0 36 36">
+                                                <path
+                                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                                    fill="none"
+                                                    stroke="hsl(var(--muted))"
+                                                    strokeWidth="3"
+                                                />
+                                                <path
+                                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                                    fill="none"
+                                                    stroke={unpaidTotal > 0 ? "hsl(var(--destructive))" : "hsl(var(--primary))"}
+                                                    strokeWidth="3"
+                                                    strokeDasharray={`${Math.min((unpaidTotal / project.projectPrice) * 100, 100)}, 100`}
+                                                />
+                                            </svg>
+                                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                                                <span className={`text-xl font-bold ${unpaidTotal > 0 ? 'text-destructive' : 'text-primary'}`}>
+                                                    {((unpaidTotal / project.projectPrice) * 100).toFixed(1)}%
+                                                </span>
+                                                <span className="block text-xs text-muted-foreground">Creep</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p className="text-center text-sm text-muted-foreground">
+                                        {unpaidTotal > 0
+                                            ? "Warning: Scope is expanding beyond original agreement."
+                                            : "Great job! Project is currently within scope."}
+                                    </p>
+                                </div>
                             </div>
+
+                            {/* Timeline Visualizer */}
+                            {project.startDate && project.endDate && (() => {
+                                const start = new Date(project.startDate).getTime();
+                                const end = new Date(project.endDate).getTime();
+                                const now = Date.now();
+                                const totalDuration = end - start;
+                                const elapsed = Math.max(0, Math.min(now - start, totalDuration));
+                                const progressPct = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
+                                const isOverdue = now > end;
+                                const daysLeft = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+
+                                return (
+                                    <div className="bg-white/[0.02] p-6 rounded-xl border border-border shadow-sm backdrop-blur-md">
+                                        <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                                            <Clock className="text-muted-foreground" size={20} />
+                                            Project Timeline
+                                        </h3>
+                                        <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                                            <span>{new Date(project.startDate).toLocaleDateString()}</span>
+                                            <span className={`font-medium ${isOverdue ? 'text-destructive' : daysLeft <= 7 ? 'text-yellow-500' : 'text-foreground'}`}>
+                                                {isOverdue ? `Overdue by ${Math.abs(daysLeft)} days` : `${daysLeft} days left`}
+                                            </span>
+                                            <span>{new Date(project.endDate).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="relative h-8 bg-muted/50 rounded-full overflow-hidden border border-border">
+                                            <div
+                                                className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${isOverdue ? 'bg-destructive/60' : 'bg-primary/60'}`}
+                                                style={{ width: `${Math.min(progressPct, 100)}%` }}
+                                            />
+                                            {/* Request markers */}
+                                            {project.requests.map(r => {
+                                                const rDate = new Date(r.date || r.dateRequested || '').getTime();
+                                                if (isNaN(rDate) || rDate < start || rDate > end) return null;
+                                                const pct = ((rDate - start) / totalDuration) * 100;
+                                                return (
+                                                    <div
+                                                        key={r.id}
+                                                        className={`absolute top-1 w-3 h-3 rounded-full border-2 border-white/80 shadow-sm transform -translate-x-1/2 cursor-pointer transition-transform hover:scale-150 ${r.scopeStatus === 'IN_SCOPE' ? 'bg-green-500' : 'bg-destructive'}`}
+                                                        style={{ left: `${pct}%`, bottom: '50%', transform: `translateX(-50%) translateY(50%)` }}
+                                                        title={`${r.requestText} (${r.scopeStatus === 'IN_SCOPE' ? 'In Scope' : 'Out of Scope'}) - ${new Date(r.date || r.dateRequested || '').toLocaleDateString()}`}
+                                                    />
+                                                );
+                                            })}
+                                            {/* Today marker */}
+                                            {!isOverdue && progressPct > 0 && progressPct < 100 && (
+                                                <div
+                                                    className="absolute top-0 bottom-0 w-0.5 bg-foreground z-10"
+                                                    style={{ left: `${progressPct}%` }}
+                                                >
+                                                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-foreground bg-card px-1.5 py-0.5 rounded border border-border shadow-sm whitespace-nowrap">
+                                                        Today
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                                            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> In Scope</span>
+                                            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-destructive inline-block" /> Out of Scope</span>
+                                            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-foreground inline-block" /> Today</span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     )}
 
@@ -445,30 +595,75 @@ ${senderName}`;
                                                             }`}>
                                                             {request.scopeStatus === 'IN_SCOPE' ? 'In Scope' : 'Out of Scope'}
                                                         </span>
+                                                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadge(request.status)}`}>
+                                                            {request.status}
+                                                        </span>
                                                         <span className="text-muted-foreground text-xs">•</span>
                                                         <span className="text-muted-foreground text-xs">{new Date(request.date).toLocaleDateString()}</span>
                                                     </div>
                                                     <h4 className="text-lg font-medium text-foreground">{request.requestText}</h4>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="font-bold text-foreground">{project.currency || '$'}{request.estimatedCost.toLocaleString()}</p>
+                                                    <p className="font-bold text-foreground">{getCurrencySymbol(project.currency)}{request.estimatedCost.toLocaleString()}</p>
                                                     <p className="text-xs text-muted-foreground">{request.timelineImpact}</p>
                                                 </div>
                                             </div>
-                                            <div className="bg-muted/30 p-3 rounded-lg text-sm text-muted-foreground mb-4">
-                                                <span className="font-medium text-foreground">Why: </span>
-                                                {request.justification}
-                                            </div>
-                                            <div className="flex justify-end gap-2">
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedRequests([request.id]);
-                                                        setActiveTab('email');
-                                                    }}
-                                                    className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1"
-                                                >
-                                                    <Mail size={16} /> Draft Email
-                                                </button>
+                                            {request.justification && (
+                                                <div className="bg-muted/30 p-3 rounded-lg text-sm text-muted-foreground mb-4">
+                                                    <span className="font-medium text-foreground">Why: </span>
+                                                    {request.justification}
+                                                </div>
+                                            )}
+                                            <div className="flex items-center justify-between">
+                                                {/* Status Workflow Buttons */}
+                                                <div className="flex gap-2">
+                                                    {request.status === 'Pending' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleStatusChange(request.id, 'Quoted')}
+                                                                className="px-3 py-1.5 text-xs font-medium bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors flex items-center gap-1"
+                                                            >
+                                                                <Tag size={14} /> Quote
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleStatusChange(request.id, 'Declined')}
+                                                                className="px-3 py-1.5 text-xs font-medium bg-destructive/10 text-destructive border border-destructive/20 rounded-lg hover:bg-destructive/20 transition-colors flex items-center gap-1"
+                                                            >
+                                                                <ThumbsDown size={14} /> Decline
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {request.status === 'Quoted' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleStatusChange(request.id, 'Approved')}
+                                                                className="px-3 py-1.5 text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20 rounded-lg hover:bg-green-500/20 transition-colors flex items-center gap-1"
+                                                            >
+                                                                <ThumbsUp size={14} /> Approve
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleStatusChange(request.id, 'Declined')}
+                                                                className="px-3 py-1.5 text-xs font-medium bg-destructive/10 text-destructive border border-destructive/20 rounded-lg hover:bg-destructive/20 transition-colors flex items-center gap-1"
+                                                            >
+                                                                <ThumbsDown size={14} /> Decline
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {(request.status === 'Approved' || request.status === 'Declined') && (
+                                                        <span className="text-xs text-muted-foreground italic">Final — {request.status}</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedRequests([request.id]);
+                                                            setActiveTab('email');
+                                                        }}
+                                                        className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1"
+                                                    >
+                                                        <Mail size={16} /> Draft Email
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}

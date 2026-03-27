@@ -20,7 +20,7 @@ export interface Request {
   timelineImpact: string;
   justification?: string;
   note?: string; // Deprecated, use 'justification'
-  status: 'Pending' | 'Approved' | 'Declined' | 'Discussion';
+  status: 'Pending' | 'Quoted' | 'Approved' | 'Declined' | 'Discussion';
 }
 
 export interface Project {

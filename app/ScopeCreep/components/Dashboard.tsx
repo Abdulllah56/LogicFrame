@@ -1,18 +1,21 @@
 import React from 'react';
 import { Project } from '../types';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Plus, ShieldAlert, DollarSign, LogOut, Settings, TrendingUp, Activity } from 'lucide-react';
+import { ArrowRight, Plus, ShieldAlert, DollarSign, LogOut, Settings, TrendingUp, Activity, Trash2 } from 'lucide-react';
 import ScopeTrendsChart from './ScopeTrendsChart';
 import RecentActivity from './RecentActivity';
+import { getCurrencySymbol } from '../utils';
 
 interface DashboardProps {
   projects: Project[];
   onLogout?: () => void;
   userName?: string;
+  onDeleteProject?: (projectId: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ projects, onLogout, userName }) => {
+const Dashboard: React.FC<DashboardProps> = ({ projects, onLogout, userName, onDeleteProject }) => {
   const toSlug = (name: string) => name.toLowerCase().replace(/\s+/g, '-');
+  const [deleteConfirm, setDeleteConfirm] = React.useState<string | null>(null);
 
   // Calculate aggregates
   const totalUnpaidWork = projects.reduce((acc, project) => {
@@ -88,7 +91,7 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onLogout, userName }) =
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Risk (Unpaid)</p>
-              <h3 className="text-2xl font-bold text-foreground">${totalUnpaidWork.toLocaleString()}</h3>
+              <h3 className="text-2xl font-bold text-foreground">{getCurrencySymbol('USD')}{totalUnpaidWork.toLocaleString()}</h3>
             </div>
           </div>
         </div>
@@ -100,7 +103,7 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onLogout, userName }) =
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Revenue Saved</p>
-              <h3 className="text-2xl font-bold text-foreground">${totalSavedRevenue.toLocaleString()}</h3>
+              <h3 className="text-2xl font-bold text-foreground">{getCurrencySymbol('USD')}{totalSavedRevenue.toLocaleString()}</h3>
             </div>
           </div>
         </div>
@@ -178,7 +181,7 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onLogout, userName }) =
                       </div>
                       <div className="text-left md:text-right">
                         <p className="text-sm text-muted-foreground">Original Budget</p>
-                        <p className="text-lg font-bold text-foreground">{project.currency || '$'}{project.projectPrice.toLocaleString()}</p>
+                        <p className="text-lg font-bold text-foreground">{getCurrencySymbol(project.currency)}{project.projectPrice.toLocaleString()}</p>
                       </div>
                     </div>
 
@@ -186,14 +189,14 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onLogout, userName }) =
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Unpaid Work</p>
                         <p className={`text-xl font-bold ${unpaidAmount > 0 ? 'text-destructive' : 'text-green-500'}`}>
-                          {project.currency || '$'}{unpaidAmount.toLocaleString()}
+                          {getCurrencySymbol(project.currency)}{unpaidAmount.toLocaleString()}
                         </p>
                         <p className="text-xs text-muted-foreground">{unpaidRequests.length} pending requests</p>
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Current Total</p>
                         <p className="text-xl font-bold text-foreground">
-                          {project.currency || '$'}{(project.projectPrice + unpaidAmount).toLocaleString()}
+                          {getCurrencySymbol(project.currency)}{(project.projectPrice + unpaidAmount).toLocaleString()}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {unpaidAmount > 0 ? `+${((unpaidAmount / project.projectPrice) * 100).toFixed(1)}% increase` : 'On budget'}
@@ -207,6 +210,31 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onLogout, userName }) =
                     </div>
 
                     <div className="flex items-center justify-end gap-3">
+                      {deleteConfirm === project.id ? (
+                        <div className="flex items-center gap-2 animate-in fade-in">
+                          <span className="text-xs text-muted-foreground">Delete this project?</span>
+                          <button
+                            onClick={() => { onDeleteProject?.(project.id); setDeleteConfirm(null); }}
+                            className="px-3 py-1.5 text-xs bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 font-medium"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(null)}
+                            className="px-3 py-1.5 text-xs bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 font-medium"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setDeleteConfirm(project.id)}
+                          className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                          title="Delete project"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                       <Link
                         to={`/project/${toSlug(project.projectName)}`}
                         className="px-4 py-2 text-sm bg-white/[0.03] border border-border text-foreground rounded-lg hover:bg-white/[0.05] transition-colors font-medium"
@@ -225,7 +253,7 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onLogout, userName }) =
                   {unpaidAmount > 0 && (
                     <div className="bg-destructive/10 px-6 py-3 border-t border-destructive/20 flex items-center gap-2 text-destructive text-sm font-medium animate-pulse">
                       <ShieldAlert size={16} />
-                      Attention needed: You have {project.currency || '$'}{unpaidAmount.toLocaleString()} in pending scope changes.
+                      Attention needed: You have {getCurrencySymbol(project.currency)}{unpaidAmount.toLocaleString()} in pending scope changes.
                     </div>
                   )}
                 </div>
