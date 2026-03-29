@@ -190,13 +190,15 @@ export function StyledInvoicePDF({ invoice, template, logo }) {
             <View>
               {logo && <Image src={logo} style={styles.logo} />}
               <Text style={styles.title}>INVOICE</Text>
-              <Text style={styles.value}>#{invoice.invoiceNumber}</Text>
+              <Text style={styles.value}>
+                {(invoice.custom_prefix || invoice.customPrefix || "") + (invoice.invoice_number || invoice.invoiceNumber)}
+              </Text>
             </View>
             <View>
               <Text style={styles.label}>Date</Text>
-              <Text style={styles.value}>{formatDate(invoice.createdAt || new Date())}</Text>
+              <Text style={styles.value}>{formatDate(invoice.created_at || invoice.createdAt || new Date())}</Text>
               <Text style={styles.label}>Due Date</Text>
-              <Text style={styles.value}>{formatDate(invoice.dueDate)}</Text>
+              <Text style={styles.value}>{formatDate(invoice.due_date || invoice.dueDate)}</Text>
             </View>
           </View>
         </View>
@@ -204,15 +206,15 @@ export function StyledInvoicePDF({ invoice, template, logo }) {
         <View style={styles.grid}>
           <View style={styles.column}>
             <Text style={styles.label}>FROM</Text>
-            <Text style={[styles.value, { fontWeight: 'bold' }]}>{invoice.businessName}</Text>
-            <Text style={styles.value}>{invoice.businessEmail}</Text>
-            <Text style={styles.value}>{invoice.businessCity}</Text>
+            <Text style={[styles.value, { fontWeight: 'bold' }]}>{invoice.business_name || invoice.businessName}</Text>
+            <Text style={styles.value}>{invoice.business_email || invoice.businessEmail}</Text>
+            <Text style={styles.value}>{invoice.business_city || invoice.businessCity}</Text>
           </View>
           <View style={styles.column}>
             <Text style={styles.label}>BILL TO</Text>
-            <Text style={[styles.value, { fontWeight: 'bold' }]}>{invoice.clientName}</Text>
-            <Text style={styles.value}>{invoice.clientEmail}</Text>
-            <Text style={styles.value}>{invoice.projectName}</Text>
+            <Text style={[styles.value, { fontWeight: 'bold' }]}>{invoice.client_name || invoice.clientName}</Text>
+            <Text style={styles.value}>{invoice.client_email || invoice.clientEmail}</Text>
+            <Text style={styles.value}>{invoice.project_name || invoice.projectName}</Text>
           </View>
         </View>
 
@@ -235,23 +237,52 @@ export function StyledInvoicePDF({ invoice, template, logo }) {
           ))}
         </View>
 
-        <View style={styles.totals}>
-          <View style={styles.totalRow}>
-            <Text>Subtotal:</Text>
-            <Text>{formatCurrency(invoice.subtotal)}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <View style={{ width: '50%' }}>
+            {(invoice.notes || invoice.payment_instructions || invoice.paymentInstructions) && (
+              <View style={{ marginTop: 10 }}>
+                {invoice.notes && (
+                  <View style={{ marginBottom: 10 }}>
+                    <Text style={[styles.label, { color: theme.accent, fontWeight: 'bold' }]}>NOTES</Text>
+                    <Text style={{ fontSize: 10, lineHeight: 1.4 }}>{invoice.notes}</Text>
+                  </View>
+                )}
+                {(invoice.payment_instructions || invoice.paymentInstructions) && (
+                  <View>
+                    <Text style={[styles.label, { color: theme.accent, fontWeight: 'bold' }]}>PAYMENT INSTRUCTIONS</Text>
+                    <Text style={{ fontSize: 10, lineHeight: 1.4 }}>
+                      {invoice.payment_instructions || invoice.paymentInstructions}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
-          <View style={styles.totalRow}>
-            <Text>Tax ({invoice.taxRate}%):</Text>
-            <Text>{formatCurrency(invoice.taxAmount)}</Text>
-          </View>
-          <View style={styles.grandTotal}>
-            <Text>Total:</Text>
-            <Text>{formatCurrency(invoice.total)}</Text>
+          
+          <View style={styles.totals}>
+            <View style={styles.totalRow}>
+              <Text>Subtotal:</Text>
+              <Text>{formatCurrency(invoice.subtotal)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text>Tax ({invoice.tax_rate || invoice.taxRate}%):</Text>
+              <Text>{formatCurrency(invoice.tax_amount || invoice.taxAmount)}</Text>
+            </View>
+            {invoice.late_fee_percent > 0 && (
+               <View style={styles.totalRow}>
+                <Text style={{ color: '#ef4444' }}>Late Fee ({invoice.late_fee_percent}%):</Text>
+                <Text style={{ color: '#ef4444' }}>{formatCurrency((Number(invoice.subtotal) * Number(invoice.late_fee_percent)) / 100)}</Text>
+              </View>
+            )}
+            <View style={styles.grandTotal}>
+              <Text>Total:</Text>
+              <Text>{formatCurrency(invoice.total)}</Text>
+            </View>
           </View>
         </View>
 
         <Text style={styles.footer}>
-          Thank you for your business!
+          {invoice.notes ? "Thank you for your business!" : "Thank you for choosing LogicFrame InvoiceMaker!"}
         </Text>
       </Page>
     </Document>

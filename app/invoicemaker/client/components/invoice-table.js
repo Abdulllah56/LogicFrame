@@ -40,26 +40,12 @@ import {
   Plus,
   FileText,
   Filter,
-  ListOrdered
+  ListOrdered,
+  Copy
 } from "lucide-react";
 import { InvoiceForm } from "./invoice-form";
 import { TemplatePicker } from "./template-picker";
-
-// Local storage utilities for invoices persistence
-const LS_KEY = 'invoicemaker_invoices';
-
-function loadInvoices() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveInvoices(invoices) {
-  localStorage.setItem(LS_KEY, JSON.stringify(invoices));
-}
+import { useInvoices } from "../hooks/useInvoices";
 
 export function InvoiceTable() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -67,82 +53,58 @@ export function InvoiceTable() {
   const [sortBy, setSortBy] = useState("date-desc");
 
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { invoices, isLoading, deleteInvoice, updateInvoice, duplicateInvoice } = useInvoices();
 
-  const { data: invoices = [], isLoading } = useQuery({
-    queryKey: ["local/invoices"],
-    queryFn: async () => loadInvoices(),
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    refetchInterval: 1000, // Refresh every second
-  });
+  const updateStatus = (id, status) => {
+    updateInvoice(id, { status });
+  };
 
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }) => {
-      const list = loadInvoices();
-      const idx = list.findIndex((inv) => inv.id === id);
-      if (idx === -1) throw new Error("Invoice not found");
-      list[idx] = { ...list[idx], status };
-      saveInvoices(list);
-      return list[idx];
-    },
-    onSuccess: (_data, variables) => {
-      // Update cache immediately
-      queryClient.setQueryData(["local/invoices"], (old) => {
-        if (!old) return old;
-        return old.map((inv) => (inv.id === variables.id ? { ...inv, status: variables.status } : inv));
-      });
-      queryClient.invalidateQueries({ queryKey: ["local/invoices"] });
-      toast({ title: "Status updated", description: "Invoice status updated successfully" });
-    },
-    onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
+  const handleDelete = (id) => {
+    if (confirm("Are you sure you want to delete this invoice?")) {
+      deleteInvoice(id);
+    }
+  };
 
-  const deleteMutation = useMutation({
-    mutationFn: async (invoiceId) => {
-      const list = loadInvoices().filter((inv) => inv.id !== invoiceId);
-      saveInvoices(list);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["local/invoices"] });
-      toast({
-        title: "Success",
-        description: "Invoice deleted successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const handleDuplicate = async (invoice) => {
+    try {
+      await duplicateInvoice(invoice);
+      toast({ title: "Success", description: "Invoice duplicated successfully" });
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to duplicate invoice", variant: "destructive" });
+    }
+  };
 
   // Filter and sort invoices
   const filteredInvoices = invoices
     .filter((invoice) => {
+      const invNum = String(invoice.invoice_number || invoice.invoiceNumber || "");
+      const clName = String(invoice.client_name || invoice.clientName || "");
+      const prName = String(invoice.project_name || invoice.projectName || "");
+
       const matchesSearch =
-        invoice.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase());
+        clName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        prName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        invNum.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
+      const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
+      const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
+      const totalA = parseFloat(a.total || 0);
+      const totalB = parseFloat(b.total || 0);
+
       switch (sortBy) {
         case "date-desc":
-          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+          return dateB - dateA;
         case "date-asc":
-          return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+          return dateA - dateB;
         case "amount-desc":
-          return parseFloat(b.total) - parseFloat(a.total);
+          return totalB - totalA;
         case "amount-asc":
-          return parseFloat(a.total) - parseFloat(b.total);
+          return totalA - totalB;
         default:
           return 0;
       }
@@ -158,14 +120,6 @@ export function InvoiceTable() {
         return <Badge className="status-badge status-overdue">Overdue</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  // handleEdit logic removed in favor of direct Links
-
-  const handleDelete = (invoiceId) => {
-    if (confirm("Are you sure you want to delete this invoice?")) {
-      deleteMutation.mutate(invoiceId);
     }
   };
 
@@ -328,18 +282,25 @@ export function InvoiceTable() {
               filteredInvoices.map((invoice) => (
                 <TableRow key={invoice.id} className="hover:bg-muted/50">
                   <TableCell>
-                    <div className="font-semibold">{invoice.invoiceNumber}</div>
+                    <div className="flex items-center gap-2">
+                       <div className="font-semibold">{invoice.invoice_number || invoice.invoiceNumber}</div>
+                       {invoice.viewed_at && (
+                         <Badge variant="outline" className="text-[10px] py-0 px-1 border-primary/30 text-primary">
+                           Viewed
+                         </Badge>
+                       )}
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      {format(new Date(invoice.createdAt || Date.now()), "MMM dd, yyyy")}
+                      {format(new Date(invoice.created_at || invoice.createdAt || Date.now()), "MMM dd, yyyy")}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{invoice.clientName}</div>
-                    <div className="text-xs text-muted-foreground truncate max-w-[200px]">{invoice.clientEmail}</div>
+                    <div className="font-medium">{invoice.client_name || invoice.clientName}</div>
+                    <div className="text-xs text-muted-foreground truncate max-w-[200px]">{invoice.client_email || invoice.clientEmail}</div>
                   </TableCell>
-                  <TableCell>{invoice.projectName}</TableCell>
+                  <TableCell>{invoice.project_name || invoice.projectName}</TableCell>
                   <TableCell className="font-semibold">${invoice.total}</TableCell>
-                  <TableCell>{format(new Date(invoice.dueDate), "MMM dd, yyyy")}</TableCell>
+                  <TableCell>{format(new Date(invoice.due_date || invoice.dueDate), "MMM dd, yyyy")}</TableCell>
                   <TableCell>
                     {getStatusBadge(invoice.status)}
                   </TableCell>
@@ -371,6 +332,10 @@ export function InvoiceTable() {
                           <Download className="w-4 h-4" />
                           Download PDF
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicate(invoice)} className="flex items-center gap-2 cursor-pointer">
+                          <Copy className="w-4 h-4" />
+                          Duplicate
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -379,13 +344,13 @@ export function InvoiceTable() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent side="right" className="w-40">
-                            <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: invoice.id, status: 'paid' })}>
+                            <DropdownMenuItem onClick={() => updateStatus(invoice.id, 'paid')}>
                               Paid
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: invoice.id, status: 'pending' })}>
+                            <DropdownMenuItem onClick={() => updateStatus(invoice.id, 'pending')}>
                               Pending
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: invoice.id, status: 'overdue' })}>
+                            <DropdownMenuItem onClick={() => updateStatus(invoice.id, 'overdue')}>
                               Overdue
                             </DropdownMenuItem>
                           </DropdownMenuContent>

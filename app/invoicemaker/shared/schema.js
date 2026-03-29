@@ -19,7 +19,9 @@ const invoiceItemSchema = z.object({
 
 // Main invoice form schema
 export const invoiceFormSchema = z.object({
+  id: z.string().uuid().optional(),
   invoiceNumber: z.string().optional(),
+  customPrefix: z.string().optional(),
   businessName: z.string().min(1, "Business name is required"),
   businessEmail: z.string().email("Invalid email format"),
   businessCity: z.string().min(1, "City is required"),
@@ -50,5 +52,23 @@ export const invoiceFormSchema = z.object({
     const num = parseFloat(val);
     return isNaN(num) ? 0 : num;
   }),
+  
+  // New features
+  isRecurring: z.boolean().default(false),
+  frequency: z.enum(["weekly", "monthly", "quarterly"]).optional().nullable(),
+  nextGenerationDate: z.string().datetime().optional().nullable(),
+  notes: z.string().optional(),
+  paymentInstructions: z.string().optional(),
+  autoChase: z.boolean().default(false),
+  lateFeePercent: z.string().transform((val) => {
+    const num = parseFloat(val);
+    return isNaN(num) ? 0 : num;
+  }).optional(),
+  lateFeeDays: z.string().transform((val) => {
+    const num = parseInt(val);
+    return isNaN(num) ? 0 : num;
+  }).optional(),
+  viewedAt: z.string().datetime().optional().nullable(),
+  
   items: z.array(invoiceItemSchema).min(1, "At least one item is required"),
 });

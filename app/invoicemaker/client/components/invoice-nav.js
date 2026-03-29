@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Moon, Sun, Home, LayoutDashboard, FileText } from "lucide-react";
+import { Moon, Sun, Home, LayoutDashboard, FileText, Plus } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import { Button } from "./ui/button";
 import { useEffect, useState } from "react";
@@ -83,6 +83,18 @@ export default function InvoiceNav() {
               })}
             </div>
             
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden sm:flex items-center gap-2 border-primary/50 text-primary hover:bg-primary/10"
+              asChild
+            >
+              <Link href="/invoicemaker/invoices/new">
+                <Plus className="h-4 w-4" />
+                New Invoice
+              </Link>
+            </Button>
+
             <Button
               variant="ghost"
               size="icon"

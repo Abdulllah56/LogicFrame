@@ -14,38 +14,14 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { invoices, isLoading, getStats, loadInvoices } = useInvoices();
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      toast({
-        title: "Demo Mode",
-        description: "Currently viewing in demo mode",
-      });
-    }
-  }, [isAuthenticated, authLoading, toast]);
-
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === 'invoicemaker_invoices') {
-        loadInvoices();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    const intervalId = setInterval(loadInvoices, 5000);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(intervalId);
-    };
-  }, [loadInvoices]);
-
   const stats = getStats();
   const statsLoading = isLoading;
 
-  const recentInvoices = [...invoices].sort((a, b) =>
-    new Date(b.createdAt) - new Date(a.createdAt)
-  ).slice(0, 5);
+  const recentInvoices = [...invoices].sort((a, b) => {
+    const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
+    const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
+    return dateB - dateA;
+  }).slice(0, 5);
   const invoicesLoading = isLoading;
 
   if (authLoading || !isAuthenticated) {
@@ -130,7 +106,13 @@ export default function Dashboard() {
               <FileText className="h-8 w-8 text-gray-400" />
             </div>
             <h3 className="no-invoices-title">No Invoices Found</h3>
-            <p className="no-invoices-description">It looks like you haven&apos;t created any invoices yet. Use the button above to create your first one.</p>
+            <p className="no-invoices-description">It looks like you haven&apos;t created any invoices yet. Get started by creating your professional invoice now.</p>
+            <Button asChild className="mt-4 common-button">
+              <Link href="/invoicemaker/invoices/new">
+                <Plus className="w-4 h-4 mr-2" />
+                Create First Invoice
+              </Link>
+            </Button>
           </div>
         ) : (
           <table className="recent-invoices-table">
@@ -147,11 +129,11 @@ export default function Dashboard() {
             <tbody>
               {recentInvoices.map((invoice) => (
                 <tr key={invoice.id}>
-                  <td>{invoice.invoiceNumber}</td>
-                  <td>{invoice.clientName || 'N/A'}</td>
+                  <td>{invoice.invoice_number || invoice.invoiceNumber}</td>
+                  <td>{invoice.client_name || invoice.clientName || 'N/A'}</td>
                   <td>{formatCurrency(invoice.total || 0)}</td>
                   <td><StatusBadge status={invoice.status} /></td>
-                  <td>{new Date(invoice.createdAt).toLocaleDateString()}</td>
+                  <td>{new Date(invoice.created_at || invoice.createdAt).toLocaleDateString()}</td>
                   <td>
                     <Link href={`/invoicemaker/invoices/${invoice.id}`} className="text-primary hover:underline">
                       View

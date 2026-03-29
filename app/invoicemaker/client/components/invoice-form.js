@@ -10,70 +10,23 @@ import { Textarea } from "./ui/textarea";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
-import { Trash2, Plus, User, Mail, Briefcase, Calendar, Hash, Building2, MapPin } from "lucide-react";
+import { Switch } from "./ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Trash2, Plus, User, Mail, Briefcase, Calendar, Hash, Building2, MapPin, Repeat, FileText, Bell, Zap } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "../hooks/useToast";
-
-// Local storage helpers
-const LS_INVOICES = 'invoicemaker_invoices';
-const LS_META = 'invoicemaker_meta';
-
-function loadInvoices() {
-  try {
-    const raw = localStorage.getItem(LS_INVOICES);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveInvoices(list) {
-  localStorage.setItem(LS_INVOICES, JSON.stringify(list));
-}
-
-function loadMeta() {
-  try {
-    const raw = localStorage.getItem(LS_META);
-    const meta = raw ? JSON.parse(raw) : undefined;
-    return meta ?? { lastInvoiceId: 0, lastInvoiceNumber: 1000 };
-  } catch {
-    return { lastInvoiceId: 0, lastInvoiceNumber: 1000 };
-  }
-}
-
-function saveMeta(meta) {
-  localStorage.setItem(LS_META, JSON.stringify(meta));
-}
-
-function nextId() {
-  const meta = loadMeta();
-  meta.lastInvoiceId = (meta.lastInvoiceId ?? 0) + 1;
-  saveMeta(meta);
-  return meta.lastInvoiceId;
-}
-
-function nextInvoiceNumber() {
-  const meta = loadMeta();
-  meta.lastInvoiceNumber = (meta.lastInvoiceNumber ?? 1000) + 1;
-  saveMeta(meta);
-  return `INV-${String(meta.lastInvoiceNumber).padStart(3, '0')}`;
-}
-
-function isoDate(input) {
-  return new Date(input).toISOString();
-}
-
+import { useInvoices } from "../hooks/useInvoices";
 import { useRouter } from "next/navigation";
 
 export function InvoiceForm({ open, onOpenChange, invoice, mode = "create", isPage = false }) {
   const router = useRouter();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { saveInvoice, updateInvoice } = useInvoices();
 
   const form = useForm({
     resolver: zodResolver(invoiceFormSchema),
     defaultValues: {
       invoiceNumber: invoice?.invoiceNumber || "",
+      customPrefix: invoice?.customPrefix || "",
       businessName: invoice?.businessName || "",
       businessEmail: invoice?.businessEmail || "",
       businessCity: invoice?.businessCity || "",
@@ -88,8 +41,17 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create", isPa
       taxAmount: invoice?.taxAmount || "0",
       total: invoice?.total || "0",
       items: invoice?.items || [{ description: "", quantity: "1", rate: "0", amount: "0" }],
+      isRecurring: invoice?.isRecurring || false,
+      frequency: invoice?.frequency || "monthly",
+      notes: invoice?.notes || "",
+      paymentInstructions: invoice?.paymentInstructions || "",
+      autoChase: invoice?.autoChase || false,
+      lateFeePercent: invoice?.lateFeePercent || "0",
+      lateFeeDays: invoice?.lateFeeDays || "0",
     },
   });
+
+  // Hook initialized at line 20
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -102,26 +64,36 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create", isPa
   useEffect(() => {
     if (invoice && mode === "edit") {
       const formData = {
-        invoiceNumber: invoice.invoiceNumber || "",
-        businessName: invoice.businessName || "",
-        businessEmail: invoice.businessEmail || "",
-        businessCity: invoice.businessCity || "",
-        clientName: invoice.clientName || "",
-        clientEmail: invoice.clientEmail || "",
-        projectName: invoice.projectName || "",
+        id: invoice.id,
+        invoiceNumber: invoice.invoice_number || invoice.invoiceNumber || "",
+        customPrefix: invoice.custom_prefix || invoice.customPrefix || "",
+        businessName: invoice.business_name || invoice.businessName || "",
+        businessEmail: invoice.business_email || invoice.businessEmail || "",
+        businessCity: invoice.business_city || invoice.businessCity || "",
+        clientName: invoice.client_name || invoice.clientName || "",
+        clientEmail: invoice.client_email || invoice.clientEmail || "",
+        projectName: invoice.project_name || invoice.projectName || "",
         description: invoice.description || "",
-        dueDate: invoice.dueDate ? new Date(invoice.dueDate) : new Date(),
+        dueDate: invoice.due_date ? new Date(invoice.due_date) : new Date(),
         status: invoice.status || "pending",
-        subtotal: invoice.subtotal || "0",
-        taxRate: invoice.taxRate || "0",
-        taxAmount: invoice.taxAmount || "0",
-        total: invoice.total || "0",
+        subtotal: String(invoice.subtotal || "0"),
+        taxRate: String(invoice.tax_rate || invoice.taxRate || "0"),
+        taxAmount: String(invoice.tax_amount || invoice.taxAmount || "0"),
+        total: String(invoice.total || "0"),
         items: invoice.items || [{ description: "", quantity: "1", rate: "0", amount: "0" }],
+        isRecurring: invoice.is_recurring || invoice.isRecurring || false,
+        frequency: invoice.frequency || "monthly",
+        notes: invoice.notes || "",
+        paymentInstructions: invoice.payment_instructions || invoice.paymentInstructions || "",
+        autoChase: invoice.auto_chase || invoice.autoChase || false,
+        lateFeePercent: String(invoice.late_fee_percent || invoice.lateFeePercent || "0"),
+        lateFeeDays: String(invoice.late_fee_days || invoice.lateFeeDays || "0"),
       };
       form.reset(formData);
     } else {
       form.reset({
         invoiceNumber: "",
+        customPrefix: "",
         businessName: "",
         businessEmail: "",
         businessCity: "",
@@ -136,6 +108,13 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create", isPa
         taxAmount: "0",
         total: "0",
         items: [{ description: "", quantity: "1", rate: "0", amount: "0" }],
+        isRecurring: false,
+        frequency: "monthly",
+        notes: "",
+        paymentInstructions: "",
+        autoChase: false,
+        lateFeePercent: "0",
+        lateFeeDays: "0",
       });
     }
   }, [invoice, mode, form, open]);
@@ -304,31 +283,33 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create", isPa
     },
   });
 
-  const onSubmit = (data) => {
-    // Recalculate totals to ensure they are up to date in the submitted data
-    const subtotal = data.items.reduce((acc, item) => {
-      return acc + (parseFloat(item.quantity) || 0) * (parseFloat(item.rate) || 0);
-    }, 0);
-    const taxRate = parseFloat(data.taxRate) || 0;
-    const taxAmount = (subtotal * taxRate) / 100;
-    const total = subtotal + taxAmount;
-
+  const onSubmit = async (data) => {
     const submissionData = {
       ...data,
-      subtotal: subtotal.toFixed(2),
-      taxAmount: taxAmount.toFixed(2),
-      total: total.toFixed(2),
-      items: (data.items || []).map(item => ({
-        ...item,
-        amount: ( (parseFloat(item.quantity) || 0) * (parseFloat(item.rate) || 0) ).toFixed(2)
-      })),
       dueDate: data.dueDate instanceof Date ? data.dueDate : new Date(data.dueDate),
+      subtotal: displayTotals.subtotal,
+      taxAmount: displayTotals.taxAmount,
+      total: displayTotals.total,
+      items: (data.items || []).map((item, idx) => ({
+        ...item,
+        amount: displayTotals.itemAmounts[idx]
+      }))
     };
 
-    if (mode === "edit") {
-      updateMutation.mutate(submissionData);
-    } else {
-      createMutation.mutate(submissionData);
+    try {
+      if (mode === "edit") {
+        await updateInvoice(invoice.id, submissionData);
+      } else {
+        await saveInvoice(submissionData);
+      }
+      
+      if (isPage) {
+        router.push("/invoicemaker/invoices");
+      } else if (onOpenChange) {
+        onOpenChange(false);
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -544,6 +525,129 @@ export function InvoiceForm({ open, onOpenChange, invoice, mode = "create", isPa
                   </div>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Advanced Features Row 1 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="recent-invoices-card">
+              <CardHeader className="pb-3 border-b border-white/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Repeat className="w-4 h-4 text-primary" />
+                    <CardTitle className="text-sm font-bold">Recurring Billing</CardTitle>
+                  </div>
+                  <Switch 
+                    checked={form.watch("isRecurring")} 
+                    onCheckedChange={(val) => form.setValue("isRecurring", val)}
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {form.watch("isRecurring") ? (
+                  <div className="space-y-3">
+                    <Label className="text-xs">Frequency</Label>
+                    <Select value={form.watch("frequency")} onValueChange={(v) => form.setValue("frequency", v)}>
+                      <SelectTrigger className="bg-background/50 border-white/10">
+                        <SelectValue placeholder="Select Frequency" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10">
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="quarterly">Quarterly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">
+                    Great for monthly retainers. Next invoice generates automatically.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="recent-invoices-card">
+              <CardHeader className="pb-3 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-primary" />
+                  <CardTitle className="text-sm font-bold">Advanced Controls</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs flex items-center gap-2">
+                    <Hash className="w-3 h-3" /> Custom Prefix
+                  </Label>
+                  <Input {...form.register("customPrefix")} placeholder="e.g. ACM-2026-" className="bg-background/50 border-white/10 h-8" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-xs flex items-center gap-2">
+                      <Bell className="w-3 h-3" /> Smart Follow-up
+                    </Label>
+                    <p className="text-[10px] text-muted-foreground">Auto-track in Payment Chase</p>
+                  </div>
+                  <Switch 
+                    checked={form.watch("autoChase")} 
+                    onCheckedChange={(val) => form.setValue("autoChase", val)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Notes Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2 recent-invoices-card p-4 rounded-lg bg-background/30 border border-white/5">
+              <Label className="flex items-center gap-2 text-sm font-bold">
+                <FileText className="w-4 h-4 text-primary" /> Extra Notes / Terms
+              </Label>
+              <Textarea 
+                {...form.register("notes")} 
+                placeholder="e.g. 'Payment due within 14 days'" 
+                className="min-h-[100px] bg-background/50 border-white/10"
+              />
+            </div>
+            <div className="space-y-2 recent-invoices-card p-4 rounded-lg bg-background/30 border border-white/5">
+              <Label className="flex items-center gap-2 text-sm font-bold">
+                <Building2 className="w-4 h-4 text-primary" /> Payment Instructions
+              </Label>
+              <Textarea 
+                {...form.register("paymentInstructions")} 
+                placeholder="e.g. 'Bank Transfer: logicframe-xxxxxxx'" 
+                className="min-h-[100px] bg-background/50 border-white/10"
+              />
+            </div>
+          </div>
+
+          {/* Late Fee calculator card */}
+          <Card className="recent-invoices-card border-dashed border-primary/20 bg-primary/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="space-y-1">
+                  <h4 className="font-bold text-sm">Late Fee Auto-Calculator</h4>
+                  <p className="text-xs text-muted-foreground">Automatically adds a penalty if unpaid after grace period.</p>
+                </div>
+                <Switch 
+                  checked={form.watch("lateFeePercent") !== "0"} 
+                  onCheckedChange={(checked) => {
+                    form.setValue("lateFeePercent", checked ? "2" : "0");
+                    form.setValue("lateFeeDays", checked ? "30" : "0");
+                  }} 
+                />
+              </div>
+              {form.watch("lateFeePercent") !== "0" && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Fee Percentage (%)</Label>
+                    <Input type="number" {...form.register("lateFeePercent")} className="bg-background/50 border-white/10" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Grace Period (Days)</Label>
+                    <Input type="number" {...form.register("lateFeeDays")} className="bg-background/50 border-white/10" />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

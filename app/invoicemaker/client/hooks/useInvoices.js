@@ -1,136 +1,94 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useToast } from './use-toast';
-
-const STORAGE_KEY = 'invoicemaker_invoices';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from './useToast';
+import { useCallback } from 'react';
 
 export function useInvoices() {
-  const [invoices, setInvoices] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Load invoices from localStorage
-  const loadInvoices = useCallback(() => {
-    try {
-      const storedInvoices = localStorage.getItem(STORAGE_KEY);
-      if (storedInvoices) {
-        setInvoices(JSON.parse(storedInvoices));
-      }
-    } catch (error) {
-      console.error('Error loading invoices:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load invoices',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
+  // 1. Fetch Invoices
+  const { data: invoices = [], isLoading } = useQuery({
+    queryKey: ['/api/invoicemaker/invoices'],
+    queryFn: async () => {
+      const res = await fetch('/api/invoicemaker/invoices');
+      if (!res.ok) throw new Error('Failed to fetch invoices');
+      return res.json();
     }
-  }, [toast]);
+  });
 
-  // Save invoice
-  const saveInvoice = useCallback((invoiceData) => {
-    try {
-      const newInvoice = {
-        ...invoiceData,
-        id: Date.now(),
-        createdAt: new Date().toISOString(),
-        status: 'pending',
-      };
-
-      const updatedInvoices = [...invoices, newInvoice];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedInvoices));
-      setInvoices(updatedInvoices);
-      // Dispatch storage event for real-time updates
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: STORAGE_KEY,
-        newValue: JSON.stringify(updatedInvoices)
-      }));
-
-      toast({
-        title: 'Success',
-        description: 'Invoice saved successfully',
+  // 2. Create Invoice
+  const saveMutation = useMutation({
+    mutationFn: async (invoiceData) => {
+      const res = await fetch('/api/invoicemaker/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(invoiceData)
       });
-
-      return newInvoice;
-    } catch (error) {
-      console.error('Error saving invoice:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save invoice',
-        variant: 'destructive',
-      });
-      return null;
+      if (!res.ok) throw new Error('Failed to save invoice');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invoicemaker/invoices'] });
+      toast({ title: 'Success', description: 'Invoice saved successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
-  }, [invoices, toast]);
+  });
 
-  // Update invoice
-  const updateInvoice = useCallback((id, updates) => {
-    try {
-      const updatedInvoices = invoices.map(invoice => 
-        invoice.id === id ? { ...invoice, ...updates } : invoice
-      );
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedInvoices));
-      setInvoices(updatedInvoices);
-      // Dispatch storage event for real-time updates
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: STORAGE_KEY,
-        newValue: JSON.stringify(updatedInvoices)
-      }));
-
-      toast({
-        title: 'Success',
-        description: 'Invoice updated successfully',
+  // 3. Update Invoice
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }) => {
+      const res = await fetch(`/api/invoicemaker/invoices/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
       });
-    } catch (error) {
-      console.error('Error updating invoice:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update invoice',
-        variant: 'destructive',
-      });
+      if (!res.ok) throw new Error('Failed to update invoice');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invoicemaker/invoices'] });
+      toast({ title: 'Success', description: 'Invoice updated successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
-  }, [invoices, toast]);
+  });
 
-  // Delete invoice
-  const deleteInvoice = useCallback((id) => {
-    try {
-      const updatedInvoices = invoices.filter(invoice => invoice.id !== id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedInvoices));
-      setInvoices(updatedInvoices);
-      // Dispatch storage event for real-time updates
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: STORAGE_KEY,
-        newValue: JSON.stringify(updatedInvoices)
-      }));
-
-      toast({
-        title: 'Success',
-        description: 'Invoice deleted successfully',
+  // 4. Delete Invoice
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      const res = await fetch(`/api/invoicemaker/invoices/${id}`, {
+        method: 'DELETE'
       });
-    } catch (error) {
-      console.error('Error deleting invoice:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete invoice',
-        variant: 'destructive',
-      });
+      if (!res.ok) throw new Error('Failed to delete invoice');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invoicemaker/invoices'] });
+      toast({ title: 'Success', description: 'Invoice deleted successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
-  }, [invoices, toast]);
+  });
 
-  // Get invoice by id
-  const getInvoiceById = useCallback((id) => {
-    return invoices.find(invoice => invoice.id === id) || null;
-  }, [invoices]);
+  // 5. Duplication logic
+  const duplicateInvoice = async (invoice) => {
+    const { id, created_at, updated_at, items, invoice_number, ...rest } = invoice;
+    const duplicatedData = {
+      ...rest,
+      invoiceNumber: `${invoice_number}-COPY`,
+      status: 'pending',
+      items: items.map(({ id: item_id, invoice_id, ...itemRest }) => itemRest)
+    };
+    return saveMutation.mutateAsync(duplicatedData);
+  };
 
-  // Load invoices on mount
-  useEffect(() => {
-    loadInvoices();
-  }, [loadInvoices]);
-
-  // Calculate invoice stats
   const getStats = useCallback(() => {
     return invoices.reduce((stats, invoice) => {
-      const total = invoice.items.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+      const total = parseFloat(invoice.total || 0);
       
       stats.totalInvoices += 1;
       if (invoice.status === 'paid') {
@@ -150,14 +108,18 @@ export function useInvoices() {
     });
   }, [invoices]);
 
+  const getInvoiceById = useCallback((id) => {
+    return invoices.find(inv => inv.id === id);
+  }, [invoices]);
+
   return {
     invoices,
     isLoading,
-    saveInvoice,
-    updateInvoice,
-    deleteInvoice,
+    saveInvoice: saveMutation.mutate,
+    updateInvoice: (id, updates) => updateMutation.mutate({ id, updates }),
+    deleteInvoice: deleteMutation.mutate,
+    duplicateInvoice,
     getInvoiceById,
     getStats,
-    loadInvoices
   };
 }
